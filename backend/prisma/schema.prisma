@@ -1,0 +1,30 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  email     String    @unique
+  senha     String
+  role      String    // PASSAGEIRO, MOTORISTA
+  documento String?   // CPF ou CNH
+  chamados  Chamado[] @relation("PassageiroChamados")
+  createdAt DateTime  @default(now())
+}
+
+model Chamado {
+  id           Int      @id @default(autoincrement())
+  ponto        String
+  linha        String
+  status       String   @default("pendente") // pendente, aceito, concluido
+  passageiro   User?     @relation("PassageiroChamados", fields: [passageiroId], references: [id])
+  passageiroId Int?
+  createdAt    DateTime @default(now())
+}

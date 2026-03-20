@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  database:
+    image: bitnami/postgresql:latest
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=app_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/bitnami/postgresql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@database:5432/app_db?schema=public
+    depends_on:
+      - database
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
