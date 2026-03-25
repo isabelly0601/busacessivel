@@ -1,12 +1,9 @@
-generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
-}
+# Modelo de Banco de Dados (MVP)
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+O esquema abaixo representa as tabelas necessárias para o funcionamento do MVP do BusAcessível, focando em simplicidade e eficácia.
+
+```prisma
+// schema.prisma
 
 model Passageiro {
   id                String    @id @default(uuid())
@@ -48,3 +45,9 @@ model SolicitacaoEmbarque {
   criadoEm            DateTime    @default(now())
   atualizadoEm        DateTime    @updatedAt
 }
+```
+
+## Relacionamentos
+- Um **Passageiro** pode ter várias **Solicitações**.
+- Um **Ponto de Ônibus** pode ter várias **Solicitações** simultâneas de passageiros diferentes.
+- A **Solicitação** é o elo central que conecta a localização exata do passageiro ao ponto oficial.

@@ -3,6 +3,11 @@ version: '3.8'
 services:
   database:
     image: bitnami/postgresql:latest
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     environment:
       - POSTGRESQL_USERNAME=postgres
       - POSTGRESQL_PASSWORD=postgres
@@ -21,7 +26,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@database:5432/app_db?schema=public
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    command: sh -c "npx prisma db push --accept-data-loss && npx prisma db seed && npm run dev"
     volumes:
       - ./backend:/app
       - /app/node_modules

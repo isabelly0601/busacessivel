@@ -21,6 +21,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -41,6 +42,7 @@ next-env.d.ts
 .prisma/
 prisma/*.db
 prisma/*.db-journal
+node_modules/.prisma/
 
 # Brain/Artifacts (specific to this environment)
 .gemini/

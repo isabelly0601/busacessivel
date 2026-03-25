@@ -1,117 +1,125 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import RouteSetup from './components/RouteSetup';
+import MotoristaDashboard from './components/MotoristaDashboard';
 
-type Chamado = { id: number; ponto: string; linha: string; status: string };
+const API_BASE = 'http://localhost:3001/api';
 
 export default function Motorista() {
-  const [chamados, setChamados] = useState<Chamado[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [lineCode, setLineCode] = useState('');
+  const [isDriving, setIsDriving] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [gpsReady, setGpsReady] = useState(false);
+  const [driverLocation, setDriverLocation] = useState<{lat: number, lng: number} | null>(null);
 
-  const fetchChamados = async () => {
-    try {
-      const res = await fetch('http://localhost:3001/chamados/pendentes');
-      if (res.ok) setChamados(await res.json());
-    } catch { /* no-op */ }
-    finally { setLoading(false); }
-  };
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastAlertsCount = useRef(0);
 
+  // ── Session Persistence ──
   useEffect(() => {
-    fetchChamados();
-    const iv = setInterval(fetchChamados, 3000);
-    return () => clearInterval(iv);
+    const savedLine = localStorage.getItem('driver_line');
+    const savedIsDriving = localStorage.getItem('driver_is_driving') === 'true';
+    if (savedLine && savedIsDriving) {
+      setLineCode(savedLine);
+      setIsDriving(true);
+    }
   }, []);
 
-  const aceitar = async (id: number) => {
-    await fetch(`http://localhost:3001/chamados/${id}/aceitar`, { method: 'PUT' }).catch(() => {});
-    fetchChamados();
+  const startAudio = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+  }, []);
+
+  const playAlertSound = useCallback(() => {
+    if (!audioCtxRef.current) return;
+    const osc = audioCtxRef.current.createOscillator();
+    const gain = audioCtxRef.current.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + 0.5);
+    osc.connect(gain).connect(audioCtxRef.current.destination);
+    osc.start();
+    osc.stop(audioCtxRef.current.currentTime + 0.5);
+  }, []);
+
+  // ── GPS ──
+  useEffect(() => {
+    if (!isDriving) return;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsReady(true);
+      },
+      () => setGpsReady(false),
+      { enableHighAccuracy: true }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [isDriving]);
+
+  // ── Alerts Polling ──
+  useEffect(() => {
+    if (!isDriving || !driverLocation) return;
+
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/motorista/alertas?codigoLinha=${lineCode}&lat=${driverLocation.lat}&lng=${driverLocation.lng}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAlerts(data);
+          if (data.length > lastAlertsCount.current) {
+            playAlertSound();
+          }
+          lastAlertsCount.current = data.length;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar alertas:', err);
+      }
+    };
+
+    fetchAlerts();
+    const iv = setInterval(fetchAlerts, 5000);
+    return () => clearInterval(iv);
+  }, [isDriving, driverLocation, lineCode, playAlertSound]);
+
+  const handleNotifyArrival = async (solicitacaoId: string) => {
+    const res = await fetch(`${API_BASE}/embarque/${solicitacaoId}/notificar-onibus`, {
+      method: 'PATCH'
+    });
+    if (res.ok) {
+      setAlerts(prev => prev.filter(a => a.id !== solicitacaoId));
+    }
   };
 
+  const handleStartRoute = () => {
+    if (lineCode.trim()) {
+      setIsDriving(true);
+      localStorage.setItem('driver_line', lineCode);
+      localStorage.setItem('driver_is_driving', 'true');
+      startAudio();
+    }
+  };
+
+  const handleLogout = () => {
+    setIsDriving(false);
+    localStorage.removeItem('driver_is_driving');
+    // We keep the line code saved but set driving to false
+  };
+
+  if (!isDriving) {
+    return <RouteSetup lineCode={lineCode} setLineCode={setLineCode} onStart={handleStartRoute} />;
+  }
+
   return (
-    <main className="flex flex-col min-h-dvh bg-[#0a0a0a] text-white">
-      {/* Header */}
-      <header className="px-6 pt-8 pb-6 border-b border-white/5">
-        <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight">Painel do Motorista</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22c55e]" />
-              </span>
-              <span className="text-sm font-semibold text-white/40">Receptor ativo</span>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-white/30 uppercase tracking-widest font-bold">Alertas</p>
-            <p className={`text-3xl font-black ${chamados.length > 0 ? 'text-[#f59e0b]' : 'text-white/20'}`}>
-              {chamados.length}
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <div className="flex-1 px-6 py-6 max-w-3xl mx-auto w-full">
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-            <div className="w-8 h-8 border-3 border-white/20 border-t-white rounded-full animate-spin" />
-          </div>
-        ) : chamados.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center">
-            <svg className="w-16 h-16 text-white/10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 className="text-2xl font-bold text-white/30">Nenhum alerta no momento</h2>
-            <p className="text-base text-white/20 max-w-xs">O painel atualizará automaticamente quando um passageiro PCD solicitar embarque na sua rota.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {chamados.map((c) => (
-              <div
-                key={c.id}
-                className="relative rounded-2xl border border-[#f59e0b]/20 bg-[#141414] overflow-hidden"
-              >
-                {/* Left accent bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#f59e0b]" />
-
-                <div className="p-6 pl-8">
-                  {/* Badge */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-75 animate-ping" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ef4444]" />
-                    </span>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#ef4444]">
-                      Embarque PCD
-                    </span>
-                  </div>
-
-                  {/* Info */}
-                  <div className="space-y-3 mb-6">
-                    <div>
-                      <p className="text-xs text-white/30 uppercase tracking-widest font-bold mb-1">Localização</p>
-                      <p className="text-xl font-bold text-white">{c.ponto}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-white/30 uppercase tracking-widest font-bold mb-1">Linha Solicitada</p>
-                      <p className="text-2xl font-black text-[#f59e0b]">{c.linha}</p>
-                    </div>
-                  </div>
-
-                  {/* Action */}
-                  <button
-                    onClick={() => aceitar(c.id)}
-                    className="w-full py-5 rounded-xl bg-white text-black text-lg font-black uppercase tracking-wider active:scale-[0.98] transition-transform"
-                  >
-                    Ciente — Aceitar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </main>
+    <MotoristaDashboard 
+      lineCode={lineCode}
+      gpsReady={gpsReady}
+      alerts={alerts}
+      driverLocation={driverLocation}
+      onLogout={handleLogout}
+      onNotify={handleNotifyArrival}
+    />
   );
 }

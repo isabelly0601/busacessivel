@@ -45,6 +45,16 @@ export default function Home() {
           </span>
         </Link>
       </div>
+
+      {/* Admin Link */}
+      <footer className="mt-auto py-8 text-center">
+        <Link 
+          href="/admin" 
+          className="text-xs font-black uppercase tracking-[0.3em] text-white/20 hover:text-[#3b82f6] transition-colors"
+        >
+          Painel Administrativo
+        </Link>
+      </footer>
     </main>
   );
 }
