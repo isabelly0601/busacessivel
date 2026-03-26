@@ -1,12 +1,15 @@
-# Task List: BusAcessível MVP
-
-- [x] Infraestrutura Docker Inicial
-- [x] Configuração Node, Fastify, Next.js e Prisma
-- [x] Etapa 1: Aprimoramento Visual e Interface de Voz (Passageiro)
-  - [x] Implementar permissões de microfone e `SpeechRecognition` no frontend.
-  - [x] Lógica para parsing de voz (ex: extrair "101" de "Quero pegar o 101").
-  - [x] Redesign visual premium (Glassmorphism e tipografia moderna).
-- [x] Etapa 2: Motor de GPS e Avisos Sonoros (Biper)
-  - [x] Obter coordenadas GPS via `navigator.geolocation`.
-  - [x] Implementar Áudio 1 (Chegou no Ponto) via HTML5 Audio.
-  - [x] Mockar posição do Motorista e implementar Áudio 2 (Ônibus chegando).
+- [x] Implement Face ID Login for Passageiro <!-- id: 22 -->
+- [x] Implement Driver Session Persistence (Acesso Direto) <!-- id: 26 -->
+- [x] Refactor Admin Panel with Lazy Loading Tabs <!-- id: 13 -->
+- [x] Provision GitHub Repository (Initial Push) <!-- id: 27 -->
+- [x] Modularize Motorista Dashboard <!-- id: 16 -->
+- [x] Modularize Passageiro Flow <!-- id: 19 -->
+- [x] Finalize Docker Provisioning <!-- id: 0 -->
+    - [x] Database healthcheck and startup scripts <!-- id: 7 -->
+- [x] Initialize Git Repository (Ready for commit) <!-- id: 10 -->
+- [ ] Verify services are running <!-- id: 4 -->
+    - [ ] Check backend health <!-- id: 5 -->
+    - [ ] Check frontend health <!-- id: 6 -->
+- [ ] Handle Prisma migrations and seeding <!-- id: 7 -->
+    - [ ] Run `npx prisma migrate dev` (if needed) <!-- id: 8 -->
+    - [ ] Run `npx prisma db seed` <!-- id: 9 -->

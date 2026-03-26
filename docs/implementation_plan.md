@@ -1,40 +1,49 @@
-# Plano de Implementação: BusAcessível MVP (Versão Melhorada)
+# Implementation Plan: Docker Provisioning
 
-Entendi perfeitamente a sua visão! O objetivo principal não é apenas um botão numa tela, mas criar um **assistente de mobilidade autônomo e responsivo** para o deficiente visual, utilizando recursos nativos do dispositivo (GPS, Microfone e Alto-falante) e integrando em tempo real com a frota de transporte coletivo.
+This plan aims to fully provision the BusAcessível project using Docker, ensuring that the backend (Fastify/Prisma), frontend (Next.js), and database (PostgreSQL) are correctly configured and can communicate with each other.
 
-## Arquitetura do Novo MVP
+## Proposed Changes
 
-### 1. Geolocalização e Avisos Sonoros (App do Passageiro)
-- O aplicativo fará o rastreamento em tempo real do passageiro utilizando a API de **Localização (GPS)**.
-- **Biper de Ponto (Som 1)**: Ao se aproximar de um ponto de ônibus cadastrado, o app emitirá um **som de notificação específico (ex: um bip agudo)** confirmando que o usuário está posicionado corretamente num local seguro de embarque.
-- **Biper de Aproximação (Som 2)**: Quando o motorista (da linha que o usuário solicitou) estiver se aproximando do ponto, o app começará a emitir um **som contínuo (ex: um radar sonar)**, acelerando conforme a proximidade diminui, guiando o passageiro no momento do embarque.
+### Root Configuration
+#### [MODIFY] [docker-compose.yml](file:///c:/Users/Dev2/Documents/projetos/busacessivel/docker-compose.yml)
+- Ensure environment variables are correctly set for service communication.
+- Add a healthcheck for the database to ensure the backend waits for it.
 
-### 2. Comando de Voz Interativo (Speech-to-Text)
-- O aplicativo abandonará cliques complexos no lado do passageiro.
-- A tela principal terá uma área massiva que ouvirá o usuário continuamente ou ao ser tocada.
-- O passageiro apenas **falará** o ônibus que deseja (ex: *"Quero pegar o ônibus 101"* ou *"Linha Centro"*).
-- O app usará a **Web Speech Recognition API** para converter a voz, abstrair a linha, e enviar silenciosa e magicamente o alerta para o motorista exato.
+### Git Repository
+#### [MODIFY] [.gitignore](file:///c:/Users/Dev2/Documents/projetos/busacessivel/.gitignore)
+- Ensure all environment files and build artifacts are ignored.
+- Add specific patterns for Prisma and Docker logs if missing.
 
-### 3. Painel do Motorista (Visual Premium)
-- O dashboard será elevado a um visual belíssimo de alta performance ("Dark Mode", componentes de vidro translúcido, gradientes e animações suaves).
-- O motorista verá a distância do passageiro PCD que está nos próximos pontos ou apenas receberá o "Sinal de Embarque" quando estiver a <1km do passageiro.
+#### [INITIALIZE] Git Repository
+- Add all files to the staging area.
+- Create an initial commit with the message "feat: initial provision and project structure".
 
----
+### Admin Panel (Refactoring & New Feature)
+#### [NEW] [Admin Dashboard Structure](file:///c:/Users/Dev2/Documents/projetos/busacessivel/frontend/app/admin)
+- **Nested Routing Strategy**: Create a folder structure for `/admin` that supports dynamic routes for each tab.
+- **Lazy Loading**: Use Next.js natural route-based splitting to load tab content only when active.
+- **Modular Components**:
+    - `app/admin/layout.tsx`: For shared navigation and header.
+    - `app/admin/dashboard/page.tsx`: Main overview tab.
+    - `app/admin/frota/page.tsx`: Fleet management tab.
+    - `app/admin/pontos/page.tsx`: Bus stop management tab.
 
-## Status Atual vs Etapas do MVP
+### Backend
+#### [MODIFY] [Dockerfile](file:///c:/Users/Dev2/Documents/projetos/busacessivel/backend/Dockerfile)
+- Add a script to run `npx prisma generate` and `npx prisma migrate dev` (or `db push`) before starting the server.
+- Alternatively, use a `docker-compose` command override to handle this.
 
-### ✅ Etapa 0: Fundações e Infraestrutura (Concluído)
-- Containers Docker (`busacessivel`) funcionando com Fastify, Prisma, Next.js e TailwindCSS v4.
-- Banco de Dados PostgreSQL provisionado.
-- Backend já suporta persistência de chamados.
+#### [NEW] [entrypoint.sh](file:///c:/Users/Dev2/Documents/projetos/busacessivel/backend/entrypoint.sh)
+- A shell script to wait for the DB, run Prisma commands, and start the app.
 
-### 🚀 Etapa 1: Aprimoramento Visual e Voz Interativa
-- **Interface Premium**: Vamos reconstruir ambas as telas com estética rica, fluída e alto contraste. Cores harmoniosas, grandes proporções tipográficas (Outfit / Inter) e micro-animações.
-- **Voz Transcrita**: Programar o Frontend do Passageiro para ouvir o microfone, extrair o número do ônibus da fala e disparar a requisição API automaticamente.
+## Verification Plan
 
-### 🚀 Etapa 2: Motor de GPS e Avisos Sonoros
-- Inserir arquivos MP3 ou osciladores curtos e reproduzi-los dependendo de "Mocks" de GPS (simulando a distância em metros do passageiro ao ponto, e do ônibus ao passageiro).
-- Implementar as rotinas no painel do motorista onde ele atualiza a sua localização e o servidor avisa o passageiro.
+### Automated Tests
+- Run `docker-compose up -d --build` and check if all containers are healthy.
+- Check backend logs: `docker-compose logs backend` should show the Fastify server started.
+- Check frontend logs: `docker-compose logs frontend` should show the Next.js dev server started.
 
-## Aprovação Requerida
-Por favor, analise as etapas acima. Se concordar que esta arquitetura captura a exata essência de auxiliar eficientemente o embarque como você descreveu, prosseguirei imediatamente com a **Etapa 1 (Voz e Novo Design)**.
+### Manual Verification
+- Access `http://localhost:3000` (Frontend) in the browser.
+- Access `http://localhost:3001/health` (Backend health check if it exists) or a known route.
+- Verify DB connection by checking if Prisma can list tables or if the seed was successful.

@@ -1,23 +1,62 @@
-# Walkthrough: PontoMB — Interface Redesenhada
+# Walkthrough: Provisionamento e Refatoração BusAcessível
 
-A interface foi completamente reescrita do zero, sem basear-se no design anterior. Foco total em **acessibilidade real** e **design limpo profissional**.
+Este documento resume as entregas realizadas para a infraestrutura e arquitetura do projeto BusAcessível.
 
-## Screenshots Verificados
+## 1. Provisionamento de Infraestrutura (Docker)
 
-````carousel
-![Página do Passageiro — Tela de boas-vindas com microfone centralizado e instrução clara](file:///C:/Users/Dev2/.gemini/antigravity/brain/dd605b05-e7eb-4007-9f85-8932dba12e26/passenger_page_verification_1773860962123.png)
-<!-- slide -->
-![Painel do Motorista — Dashboard escuro e limpo com contador de alertas](file:///C:/Users/Dev2/.gemini/antigravity/brain/dd605b05-e7eb-4007-9f85-8932dba12e26/driver_page_verification_1773860972159.png)
-````
+O ambiente foi totalmente dockerizado, permitindo que o projeto rode em qualquer máquina com um único comando.
 
-## Princípios do Novo Design
-1. **Zero Decoração Inútil** — Sem glassmorphism, sem gradientes decorativos, sem blur. Cada pixel serve a um propósito.
-2. **Fluxo por Etapas (Step-based)** — O passageiro percorre 5 telas claras: `Welcome → Listening → Confirmed → Approaching → Arrived`. Cada uma ocupa a tela inteira.
-3. **Contraste WCAG AAA** — Fundo `#0a0a0a`, texto branco puro, cores funcionais (azul=ação, vermelho=ouvindo, verde=confirmado, âmbar=ônibus chegando).
-4. **Touch-target Massivo** — A tela inteira é o botão de ação no app do Passageiro.
-5. **Dashboard Profissional** — O Motorista tem um painel card-based limpo, sem firulas.
+- **PostgreSQL**: Provisionado com Bitnami, incluindo healthchecks para garantir que o backend aguarde o banco estar pronto.
+- **Backend (Fastify + Prisma)**: Configurado para realizar o `prisma generate`, `prisma db push` (sincronização do esquema) e `prisma db seed` automaticamente ao iniciar.
+- **Frontend (Next.js)**: Rodando em modo desenvolvimento com Turbopack.
 
-## Como Testar
-- **Home**: [http://localhost:3000](http://localhost:3000)  
-- **Passageiro**: [http://localhost:3000/passageiro](http://localhost:3000/passageiro)  
-- **Motorista**: [http://localhost:3000/motorista](http://localhost:3000/motorista)
+> [!IMPORTANT]
+> Se notar erros de "Module not found" no backend, execute: `docker-compose up --build` para garantir que todas as dependências do `package.json` sejam instaladas na imagem.
+
+## 2. Refatoração Modular do Frontend
+
+Aplicamos dois níveis de refatoração para garantir escalabilidade e performance:
+
+### Estratégia A: Roteamento Aninhado (Admin)
+O Painel Administrativo agora usa as rotas físicas do Next.js para gerenciar abas. Isso permite "Lazy Loading" nativo e URLs compartilháveis para cada aba.
+- **/admin/dashboard**: Visão geral do sistema.
+- **/admin/frota**: Gerenciamento de veículos.
+- **/admin/pontos**: Edição de coordenadas geográficas.
+
+### Estratégia B: Extração de Componentes (Passageiro e Motorista)
+Os fluxos de usuário, que antes eram arquivos monolíticos de 300+ linhas, foram quebrados em componentes lógicos:
+- **Motorista**: Separado em `RouteSetup`, `MotoristaDashboard` e `AlertCard`.
+- **Passageiro**: Separado em `AuthFlow`, `StopSelection`, `LineSelection` e `BoardingStatus`.
+
+## 4. Repositório Remoto
+
+O código agora está sincronizado com o GitHub:
+- **Repositório**: [isabelly0601/busacessivel](https://github.com/isabelly0601/busacessivel)
+
+Para clonar e rodar o projeto do zero:
+```bash
+git clone https://github.com/isabelly0601/busacessivel.git
+cd busacessivel
+docker-compose up -d --build
+```
+
+```bash
+docker-compose up -d --build
+```
+- **Passageiro**: `http://localhost:3000/passageiro`
+- **Motorista**: `http://localhost:3000/motorista`
+- **Admin**: `http://localhost:3000/admin`
+- **API Backend**: `http://localhost:3001`
+
+Abaixo, a nova estrutura de arquivos:
+```text
+frontend/app/
+├── admin/ (Nested Routing)
+│   ├── dashboard/
+│   ├── frota/
+│   └── pontos/
+├── motorista/ (Modular Components)
+│   └── components/
+└── passageiro/ (Modular Components)
+    └── components/
+```
