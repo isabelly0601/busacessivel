@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial Docker para Alunos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --bg: #0b0f1a;
+            --card-bg: rgba(23, 30, 48, 0.8);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 50px;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(37, 99, 235, 0.1) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1000px;
+            margin: 50px auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 32px;
+            padding: 50px;
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .step-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .step {
+            position: relative;
+            padding-left: 70px;
+            animation: slideIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            box-shadow: 0 10px 20px var(--primary-glow);
+        }
+
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 23px;
+            top: 60px;
+            width: 2px;
+            height: calc(100% - 20px);
+            background: linear-gradient(to bottom, var(--primary), transparent);
+            opacity: 0.3;
+        }
+
+        .step-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .code-box {
+            background: #020617;
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-family: 'Fira Code', monospace;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .code-box:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+        }
+
+        .code-box code {
+            color: #818cf8;
+            font-size: 0.95rem;
+            display: block;
+            white-space: pre-wrap;
+        }
+
+        .copy-tag {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 0.65rem;
+            color: #475569;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .note {
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 12px;
+            padding: 15px 20px;
+            border-left: 4px solid var(--info);
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #bfdbfe;
+        }
+
+        .warning-note {
+            background: rgba(245, 158, 11, 0.05);
+            border-left: 4px solid var(--warning);
+            color: #fef3c7;
+        }
+
+        .footer-info {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 30px 20px; }
+            h1 { font-size: 2rem; }
+            .step { padding-left: 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="badge">Módulo Docker</div>
+            <h1>Guia Passo a Passo</h1>
+            <p class="subtitle">Aprenda a criar seu projeto e provisionar o ambiente do zero.</p>
+            <a href="Tecnologias.html" style="display: inline-block; margin-top: 20px; color: var(--primary); text-decoration: none; font-weight: 600;">Ver Stack Tecnológica →</a>
+        </div>
+
+        <div class="step-container">
+            <!-- Passo 1 -->
+            <div class="step" data-step="1" style="animation-delay: 0.1s">
+                <div class="step-content">
+                    <h3>Abra seu Terminal</h3>
+                    <p>No Windows 11, procure por <strong>PowerShell</strong> ou use o terminal integrado do <strong>VS Code</strong>. O Antigravity também pode executar esses comandos por você.</p>
+                </div>
+            </div>
+
+            <!-- Passo 2 -->
+            <div class="step" data-step="2" style="animation-delay: 0.2s">
+                <div class="step-content">
+                    <h3>Crie a Pasta do Seu Projeto</h3>
+                    <p>Tudo começa com uma pasta organizada. Crie o diretório onde você vai trabalhar:</p>
+                    <div class="code-box" onclick="copyCode(this)">
+                        <span class="copy-tag">Clique para copiar</span>
+                        <code>mkdir "C:\Projetos\NomeDoSeuProjeto"</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 3 -->
+            <div class="step" data-step="3" style="animation-delay: 0.3s">
+                <div class="step-content">
+                    <h3>Navegue até o Diretório</h3>
+                    <p>Este é o passo mais importante! Você <strong>precisa</strong> estar dentro da pasta para que os comandos do Docker funcionem:</p>
+                    <div class="code-box" onclick="copyCode(this)">
+                        <span class="copy-tag">Clique para copiar</span>
+                        <code>cd "C:\Projetos\NomeDoSeuProjeto"</code>
+                    </div>
+                    <div class="note"><strong>Dica:</strong> Se você estiver usando o VS Code, basta abrir a pasta (File > Open Folder) e abrir o terminal (Ctrl + `).</div>
+                </div>
+            </div>
+
+            <!-- Passo 4 -->
+            <div class="step" data-step="4" style="animation-delay: 0.4s">
+                <div class="step-content">
+                    <h3>Provisione o Ambiente</h3>
+                    <p>Agora execute o script de provisionamento automático. Ele vai baixar o banco de dados (Bitnami Postgres), o Node 24.13 e configurar o TypeScript.</p>
+                    <div class="code-box" onclick="copyCode(this)">
+                        <span class="copy-tag">PowerShell (Windows)</span>
+                        <code>.\provision.ps1</code>
+                    </div>
+                    <div class="note warning-note">
+                        <strong>Atenção:</strong> Certifique-se de que o <strong>Docker Desktop</strong> esteja aberto e rodando no seu computador.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 5 -->
+            <div class="step" data-step="5" style="animation-delay: 0.5s">
+                <div class="step-content">
+                    <h3>Verifique se Funcionou</h3>
+                    <p>Assim que o terminal mostrar "Server is running", acesse o endereço abaixo no seu navegador:</p>
+                    <div class="code-box" onclick="copyCode(this)">
+                        <span class="copy-tag">API URL</span>
+                        <code>http://localhost:3333/health</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <p><strong>Dúvidas?</strong> Os arquivos de configuração (Dockerfile, docker-compose) já foram pré-criados na sua pasta raiz.</p>
+            <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.5;">Foco no aprendizado prático • 2026</p>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(element) {
+            const code = element.querySelector('code').innerText;
+            navigator.clipboard.writeText(code);
+            
+            const tag = element.querySelector('.copy-tag');
+            const original = tag.innerText;
+            tag.innerText = 'Copiado!';
+            tag.style.color = '#10b981';
+            
+            setTimeout(() => {
+                tag.innerText = original;
+                tag.style.color = '#475569';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -65,14 +65,14 @@ export default function Motorista() {
 
     const fetchAlerts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/motorista/alertas?codigoLinha=${lineCode}&lat=${driverLocation.lat}&lng=${driverLocation.lng}`);
+        const res = await fetch(`${API_BASE}/telemetry/alertas?linha=${lineCode}&lat=${driverLocation.lat}&lng=${driverLocation.lng}`);
         if (res.ok) {
-          const data = await res.json();
-          setAlerts(data);
-          if (data.length > lastAlertsCount.current) {
+          const { solicitacoes } = await res.json();
+          setAlerts(solicitacoes || []);
+          if (solicitacoes.length > lastAlertsCount.current) {
             playAlertSound();
           }
-          lastAlertsCount.current = data.length;
+          lastAlertsCount.current = solicitacoes.length;
         }
       } catch (err) {
         console.error('Erro ao buscar alertas:', err);
@@ -85,11 +85,11 @@ export default function Motorista() {
   }, [isDriving, driverLocation, lineCode, playAlertSound]);
 
   const handleNotifyArrival = async (solicitacaoId: string) => {
-    const res = await fetch(`${API_BASE}/embarque/${solicitacaoId}/notificar-onibus`, {
+    const res = await fetch(`${API_BASE}/telemetry/notificar/${solicitacaoId}`, {
       method: 'PATCH'
     });
     if (res.ok) {
-      setAlerts(prev => prev.filter(a => a.id !== solicitacaoId));
+      setAlerts((prev: any[]) => prev.filter((a: any) => a.id !== solicitacaoId));
     }
   };
 

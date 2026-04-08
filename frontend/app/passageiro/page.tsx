@@ -234,7 +234,12 @@ export default function Passageiro() {
         )}
 
         {(step === 'awaiting_arrival' || step === 'approaching') && (
-          <BoardingStatus step={step} line={selectedLine} stopName={selectedStop.nomeDescricao} />
+          <BoardingStatus 
+            step={step} 
+            line={selectedLine} 
+            stopName={selectedStop.nomeDescricao} 
+            solicitacaoId={solicitacaoId}
+          />
         )}
       </div>
 

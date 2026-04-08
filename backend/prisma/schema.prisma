@@ -1,50 +1,248 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
+
+// ====================================================================
+// 🔐 Enums de Segurança e Controle de Acesso
+// ====================================================================
+
+enum Role {
+  PASSAGEIRO
+  MOTORISTA
+  FISCAL
+  EMPRESA
+  ADMIN
+}
+
+enum StatusConta {
+  PENDENTE
+  ATIVO
+  SUSPENSO
+  REJEITADO
+}
+
+enum TipoVeiculo {
+  ONIBUS
+  METRO
+  BRT
+}
+
+enum StatusSolicitacao {
+  AGUARDANDO
+  NOTIFICADO
+  EMBARCADO
+  CANCELADO
+  CONCLUIDO
+}
+
+// ====================================================================
+// 👤 Modelo Central de Usuários
+// ====================================================================
+
+model User {
+  id            String      @id @default(uuid())
+  cpf           String      @unique             // Apenas números (11 dígitos)
+  email         String?     @unique
+  telefone      String?     @unique
+  passwordHash  String?
+  nome          String
+  role          Role        @default(PASSAGEIRO)
+  statusConta   StatusConta @default(PENDENTE)   // Conta inicia PENDENTE até aprovação
+  avatarUrl     String?
+  criadoEm      DateTime    @default(now())
+
+  // Profiles (1:1)
+  passageiro    Passageiro?
+  motorista     Motorista?
+  fiscal        Fiscal?
+  empresa       Empresa?
+
+  // Relações de auditoria
+  validacoesPcd ValidacaoPCD[] @relation("ValidadorPCD")
+  auditLogs     AuditLog[]
+}
+
+// ====================================================================
+// ♿ Perfil do Passageiro PCD
+// ====================================================================
 
 model Passageiro {
   id                String    @id @default(uuid())
-  telefone          String    @unique
-  deviceId          String    @unique
-  nomePreferencial  String?
-  statusConta       String    @default("ativo") // ativo, banido, em_analise
-  criadoEm          DateTime  @default(now())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  deviceId          String?   @unique
+  preferenciasAcess String?
+  solicitacoes      SolicitacaoEmbarque[]
+  validacaoPcd      ValidacaoPCD?
+}
+
+// ====================================================================
+// 🚌 Perfil do Motorista
+// ====================================================================
+
+model Motorista {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  cnh               String?
+  veiculoAtualId    String?
+  veiculoAtual      Onibus?   @relation(fields: [veiculoAtualId], references: [id])
+  
+  validacoesRealizadas SolicitacaoEmbarque[] @relation("Validador")
+  alertasRecebidos     AlertaNaoAtendido[]
+}
+
+// ====================================================================
+// 🔍 Perfil do Fiscal
+// ====================================================================
+
+model Fiscal {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  matricula         String?   @unique           // Matrícula funcional
+  orgaoFiscalizador String?                     // Ex: "BHTrans", "DER-MG"
+}
+
+// ====================================================================
+// 🏢 Perfil da Empresa de Transporte
+// ====================================================================
+
+model Empresa {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  cnpj              String    @unique
+  razaoSocial       String
+  linhas            Linha[]
+}
+
+// ====================================================================
+// 🛣️ Linhas e Veículos
+// ====================================================================
+
+model Linha {
+  id                String       @id @default(uuid())
+  codigo            String       @unique          // Ex: "403-A"
+  nome              String?                       // Ex: "Santa Tereza / Centro"
+  tipoVeiculo       TipoVeiculo  @default(ONIBUS)
+  metropolitana     Boolean      @default(false)
+  empresaId         String?
+  empresa           Empresa?     @relation(fields: [empresaId], references: [id])
+  veiculos          Onibus[]
   solicitacoes      SolicitacaoEmbarque[]
 }
 
+model Onibus {
+  id                String    @id @default(uuid())
+  placa             String?   @unique
+  prefixo           String?                       // Número do ônibus (ex: 20500)
+  
+  linhaId           String
+  linha             Linha     @relation(fields: [linhaId], references: [id])
+  
+  motoristas        Motorista[]
+}
+
+// ====================================================================
+// 📍 Pontos de Parada
+// ====================================================================
+
 model PontoOnibus {
   id                String    @id @default(uuid())
+  externalId        String?   @unique            // ID da BHTrans/Transfácil
   nomeDescricao     String
   latitude          Decimal   @db.Decimal(10, 8)
   longitude         Decimal   @db.Decimal(10, 8)
   solicitacoes      SolicitacaoEmbarque[]
 }
 
-model VeiculoLinha {
-  id                String    @id @default(uuid())
-  codigoLinha       String
-  placaVeiculo      String?
-  acessibilidadeOk  Boolean   @default(true)
-}
+// ====================================================================
+// 🎫 Solicitações de Embarque (Log e Tempo Real)
+// ====================================================================
 
 model SolicitacaoEmbarque {
-  id                  String      @id @default(uuid())
-  passageiro          Passageiro  @relation(fields: [passageiroId], references: [id])
-  passageiroId        String
-  ponto               PontoOnibus @relation(fields: [pontoId], references: [id])
-  pontoId             String
-  codigoLinhaDesejada String
+  id                        String            @id @default(uuid())
+  passageiro                Passageiro        @relation(fields: [passageiroId], references: [id])
+  passageiroId              String
+  ponto                     PontoOnibus       @relation(fields: [pontoId], references: [id])
+  pontoId                   String
+  linha                     Linha             @relation(fields: [linhaId], references: [id])
+  linhaId                   String
+  codigoLinhaDesejada       String
   
-  latitudePassageiro  Decimal     @db.Decimal(10, 8)
-  longitudePassageiro Decimal     @db.Decimal(10, 8)
+  latitudePassageiro        Decimal           @db.Decimal(10, 8)
+  longitudePassageiro       Decimal           @db.Decimal(10, 8)
   
-  status              String      @default("aguardando") // aguardando, onibus_notificado, embarcado, cancelado
-  criadoEm            DateTime    @default(now())
-  atualizadoEm        DateTime    @updatedAt
+  status                    StatusSolicitacao @default(AGUARDANDO)
+  
+  distanciaMotoristaNotif   Decimal?          @db.Decimal(10, 2) // Distância em metros
+  
+  qrCodeHash                String?           // Hash para validação de segurança
+  validadoEm                DateTime?         // Momento em que o motorista confirmou
+  motoristaValidador        Motorista?        @relation("Validador", fields: [motoristaId], references: [id])
+  motoristaId               String?
+
+  criadoEm                  DateTime          @default(now())
+  atualizadoEm              DateTime          @updatedAt
+}
+
+// ====================================================================
+// 🛡️ Validação PCD (Anti-Fraude)
+// ====================================================================
+
+model ValidacaoPCD {
+  id                   String    @id @default(uuid())
+  passageiro           Passageiro @relation(fields: [passageiroId], references: [id])
+  passageiroId         String    @unique
+  
+  numeroCartaoEspecial String?   @unique         // Cartão de benefício PCD
+  urlLaudoMedico       String?                   // URL no MinIO (bucket laudos-pcd)
+  
+  validadoPor          User?     @relation("ValidadorPCD", fields: [validadoPorId], references: [id])
+  validadoPorId        String?                   // Admin que aprovou
+  dataValidacao        DateTime?
+  motivoRejeicao       String?                   // Preenchido em caso de rejeição
+  
+  criadoEm             DateTime  @default(now())
+  atualizadoEm         DateTime  @updatedAt
+}
+
+// ====================================================================
+// 🚨 Alerta Não Atendido (Fiscalização de Motoristas)
+// ====================================================================
+
+model AlertaNaoAtendido {
+  id                String    @id @default(uuid())
+  motorista         Motorista @relation(fields: [motoristaId], references: [id])
+  motoristaId       String
+  
+  solicitacaoId     String                       // ID da solicitação ignorada
+  codigoLinha       String                       // Linha do ônibus
+  localPonto        String                       // Nome do ponto onde o PCD estava
+  
+  observacao        String?                      // Comentário do fiscal
+  
+  criadoEm          DateTime  @default(now())
+}
+
+// ====================================================================
+// 📋 Log de Auditoria Geral
+// ====================================================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?                            // FK real para User
+  acao        String
+  detalhes    String?
+  ipAddress   String?
+  userAgent   String?
+  criadoEm    DateTime @default(now())
 }

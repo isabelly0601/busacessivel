@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Tecnológica</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --accent: #22d3ee;
+            --bg: #030712;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --text: #f9fafb;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 60px;
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        .case-header {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 12px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            text-align: center;
+        }
+
+        .case-header h2 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 800;
+            margin-bottom: 2px;
+            opacity: 0.9;
+        }
+
+        .case-header p {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .tech-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .tech-card::after {
+            content: 'Ver Documentação →';
+            position: absolute;
+            bottom: -30px;
+            right: 30px;
+            font-size: 0.75rem;
+            color: var(--accent);
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-weight: 700;
+        }
+
+        .tech-card:hover::after {
+            bottom: 25px;
+            opacity: 1;
+        }
+
+        .tech-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--primary);
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            padding-bottom: 50px;
+        }
+
+        .tech-card h3 {
+            color: var(--accent);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tech-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .tech-version {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 4px 12px;
+            background: rgba(34, 211, 238, 0.1);
+            color: var(--accent);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .research-callout {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .research-callout h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .research-callout p {
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn-research {
+            display: inline-block;
+            padding: 16px 40px;
+            background: #fff;
+            color: var(--bg);
+            text-decoration: none;
+            border-radius: 16px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .btn-research:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 40px 20px; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="case-header">
+            <h2>DOCKER</h2>
+            <p>Ambiente Acadêmico</p>
+        </div>
+
+        <div class="header">
+            <h1>Stack Tecnológica</h1>
+            <p class="subtitle">O ecossistema moderno planejado para alta performance e escalabilidade.</p>
+            <a href="Orientacoes.html" style="display: inline-block; margin-top: 20px; color: var(--accent); text-decoration: none; font-weight: 600;">← Voltar para Orientações</a>
+        </div>
+
+        <div class="tech-grid">
+            <a href="https://nodejs.org" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Node.js</h3>
+                <p>Ambiente runtime Javascript construído sobre o motor V8 do Chrome. Permite rodar código JS no servidor com alta eficiência e escalabilidade via I/O não bloqueante.</p>
+                <span class="tech-version">v24.13.1-alpine</span>
+            </a>
+            <a href="https://fastify.dev" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Fastify</h3>
+                <p>Framework focado em performance e baixo overhead. É considerado um dos frameworks mais rápidos para Node.js, com suporte nativo a schemas JSON e TypeScript.</p>
+                <span class="tech-version">v5.0.0</span>
+            </a>
+            <a href="https://www.prisma.io" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Prisma</h3>
+                <p>ORM (Object-Relational Mapper) de nova geração. Facilita o acesso ao banco de dados com auto-complete, migrações automatizadas e total segurança de tipos (Type Safety).</p>
+                <span class="tech-version">v7.4.0</span>
+            </a>
+            <a href="https://www.postgresql.org" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>PostgreSQL</h3>
+                <p>Um dos sistemas de banco de dados relacionais mais avançados e poderosos do mundo. Oferece integridade de dados rigorosa e suporte a consultas complexas.</p>
+                <span class="tech-version">LTS</span>
+            </a>
+            <a href="https://nextjs.org" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Next.js</h3>
+                <p>O framework React líder de mercado para produção. Oferece renderização híbrida (SSR/SSG), otimização inteligente de imagens e roteamento simplificado.</p>
+                <span class="tech-version">v16.1.6</span>
+            </a>
+            <a href="https://react.dev" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>React</h3>
+                <p>Biblioteca core para construção de interfaces de usuário baseadas em componentes. Focada em declaratividade e eficiência através do Virtual DOM.</p>
+                <span class="tech-version">v19.2.3</span>
+            </a>
+            <a href="https://tailwindcss.com" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Tailwind CSS</h3>
+                <p>Framework CSS utilitário que permite criar designs personalizados diretamente no HTML, sem sair do fluxo de desenvolvimento, garantindo performance e consistência.</p>
+                <span class="tech-version">v4.0</span>
+            </a>
+            <a href="https://www.npmjs.com/package/bcryptjs" target="_blank" class="tech-card" style="text-decoration: none;">
+                <h3>Segurança</h3>
+                <p>Utilização de bcryptjs para hashing de senhas com algoritmo adaptativo. Garante que as credenciais fiquem protegidas contra ataques de força bruta no banco.</p>
+                <span class="tech-version">bcryptjs</span>
+            </a>
+        </div>
+
+        <div class="research-callout">
+            <h3>⚡ Missão para o Aluno</h3>
+            <p>Para dominar este ambiente, você deve pesquisar cada uma das tecnologias acima. Entenda o porquê de cada escolha para a arquitetura do projeto.</p>
+            <a href="https://www.google.com/search?q=modern+web+development+stack+2026" class="btn-research" target="_blank">Começar Pesquisa</a>
+        </div>
+
+        <div class="footer">
+            2026 • Ambiente Docker Homologado
+        </div>
+    </div>
+</body>
+</html>

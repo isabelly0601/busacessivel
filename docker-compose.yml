@@ -2,33 +2,54 @@ version: '3.8'
 
 services:
   database:
-    image: bitnami/postgresql:latest
+    image: postgres:17-alpine
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "app_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
     environment:
-      - POSTGRESQL_USERNAME=postgres
-      - POSTGRESQL_PASSWORD=postgres
-      - POSTGRESQL_DATABASE=app_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - '5432:5432'
     volumes:
-      - pgdata:/bitnami/postgresql
+      - pgdata:/var/lib/postgresql/data
 
-  backend:
+  api:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - '3001:3001'
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@database:5432/app_db?schema=public
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=${NODE_ENV}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=laudos-pcd
     depends_on:
       database:
         condition: service_healthy
+      minio:
+        condition: service_started
     command: sh -c "npx prisma db push --accept-data-loss && npx prisma db seed && npm run dev"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      database:
+        condition: service_healthy
+    command: sh -c "echo 'Lógica de Backend (Worker) iniciada...' && npm run dev"
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -37,13 +58,62 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - '3000:3000'
+    environment:
+      - NODE_ENV=${NODE_ENV}
     volumes:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - api
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - api
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt:rw
+      - ./nginx/certbot/www:/var/www/certbot:rw
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+
+  mc:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...waiting for minio...' && sleep 1; done;
+      /usr/bin/mc mb myminio/laudos-pcd || true;
+      /usr/bin/mc anonymous set public myminio/laudos-pcd;
+      exit 0;
+      "
 
 volumes:
   pgdata:
+  miniodata:
+
+

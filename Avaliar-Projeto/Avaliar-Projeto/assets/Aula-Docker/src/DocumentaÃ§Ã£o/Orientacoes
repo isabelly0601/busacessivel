@@ -1,0 +1,45 @@
+🚀 GUIA DE ORIENTAÇÕES - AMBIENTE DOCKER
+======================================
+
+Este guia foi atualizado para focar no uso via Terminal do Windows (PowerShell) ou Mac/Linux (Bash).
+
+📍 REQUISITO CRÍTICO: DIRETÓRIO
+------------------------------
+Sempre certifique-se de estar no diretório correto no seu Terminal antes de rodar os comandos:
+cd "/Users/upper/Documents/Projetos /Aula-Docker"
+
+🚀 EXECUÇÃO VIA TERMINAL
+-----------------------
+Para facilitar, você pode chamar o script de provisionamento diretamente:
+
+No Windows (PowerShell):
+.\provision.ps1
+
+No Mac/Linux (Bash):
+./provision.sh
+
+🛠️ O QUE ESTÁ SENDO PROVISIONADO:
+--------------------------------
+1. PostgreSQL Bitnami (Porta 5432)
+2. API Fastify (Node 24.13, TypeScript, porta 3333)
+3. Volume persistente para o Banco de Dados.
+
+📄 PARÂMETROS DA APLICAÇÃO (app_criado):
+--------------------------------------
+NODE_VERSION=24.13.1-alpine
+APP_PORT=3333
+DB_USER=admin
+DB_PASS=password123
+DB_NAME=aula_docker_db
+DB_HOST=database
+DB_PORT=5432
+FRAMEWORK=fastify-v5
+ORM=prisma-v7.4.0
+
+💡 DICA:
+-------
+Uma versão estética e interativa deste guia foi criada em HTML:
+./src/Documentação/Orientacoes.html
+./src/Documentação/Tecnologias.html (Stack Tecnológica)
+
+Abra estes arquivos no navegador para uma experiência premium.

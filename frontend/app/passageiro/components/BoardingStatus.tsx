@@ -1,12 +1,15 @@
 "use client";
 
+import DigitalTicket from './DigitalTicket';
+
 interface BoardingStatusProps {
   step: 'awaiting_arrival' | 'approaching';
   line: string;
   stopName: string;
+  solicitacaoId: string;
 }
 
-export default function BoardingStatus({ step, line, stopName }: BoardingStatusProps) {
+export default function BoardingStatus({ step, line, stopName, solicitacaoId }: BoardingStatusProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center gap-10 animate-in zoom-in-95 duration-500">
       {step === 'awaiting_arrival' ? (
@@ -23,12 +26,19 @@ export default function BoardingStatus({ step, line, stopName }: BoardingStatusP
         </>
       ) : (
         <>
-          <div className="w-72 h-72 rounded-full bg-orange-500/20 border-8 border-orange-500 flex items-center justify-center animate-sonar shadow-[0_0_100px_rgba(249,115,22,0.4)]">
-             <span className="text-9xl">🚍</span>
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-6xl font-black text-orange-400 tracking-tighter italic">ESTÁ CHEGANDO!</h1>
-            <p className="text-2xl font-black px-4 leading-snug">Seu ônibus está muito próximo. <br/>Prepare-se para embarcar.</p>
+          <div className="w-full flex flex-col items-center gap-8">
+            <div className="space-y-2">
+              <h1 className="text-5xl font-black text-orange-400 tracking-tighter italic">ESTÁ CHEGANDO!</h1>
+              <p className="text-xl font-bold opacity-60">Prepare seu ticket de embarque</p>
+            </div>
+            
+            <DigitalTicket 
+              solicitacaoId={solicitacaoId} 
+              linha={line} 
+              ponto={stopName} 
+            />
+            
+            <p className="text-sm font-black px-8 opacity-40 leading-snug">Aproxime o QR Code do leitor secundário do ônibus ao embarcar.</p>
           </div>
           
           <style jsx>{`

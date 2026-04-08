@@ -1,3 +1,7 @@
+"use client";
+
+import * as XLSX from 'xlsx';
+
 export default function FrotaView() {
   const frota = [
     { id: '1', linha: '340', placa: 'HKW-4490', status: 'Em Rota' },
@@ -5,9 +9,25 @@ export default function FrotaView() {
     { id: '3', linha: '82', placa: 'OLP-0912', status: 'Garagem' },
   ];
 
+  const exportarExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(frota);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Frota");
+    XLSX.writeFile(workbook, "frota_busacessivel.xlsx");
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h2 className="text-3xl font-black">Gerenciamento de Frota</h2>
+      <div className="flex justify-between items-end">
+        <h2 className="text-3xl font-black">Gerenciamento de Frota</h2>
+        <button 
+          onClick={exportarExcel}
+          className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
+        >
+          <span>📥</span> Exportar Excel
+        </button>
+      </div>
+      
       <div className="bg-[#1a1a1a] rounded-3xl border border-white/5 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-white/5">
