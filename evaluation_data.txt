@@ -1,0 +1,54 @@
+═══════════════════════════════════════════════════════════════
+  RELATÓRIO DE ANÁLISE AUTOMATIZADA DO CODEBASE
+  Gerado por: Agente Avaliador de Projeto Acadêmico
+═══════════════════════════════════════════════════════════════
+Data da análise: 06/04/2026 às 13:57:47
+
+═══ FRONTEND (frontend) ═══
+✅ package.json encontrado
+
+-- Dependências de Produção --
+  ✅ Next.js: 16.1.6
+  ❌ React: NÃO ENCONTRADO
+  ✅ React DOM: 19.2.3
+  ✅ TypeScript: ^5.0.0
+  ✅ TailwindCSS: 4.0.0
+  ❌ Lucide React: NÃO ENCONTRADO
+  ❌ Prisma Client: NÃO ENCONTRADO
+
+-- Dependências NÃO mapeadas --
+  ⚠️  EXTRA: dependencies
+  ⚠️  EXTRA: devDependencies
+  ⚠️  EXTRA: ^10.4.0
+  ⚠️  EXTRA: ^8.4.0
+
+═══ BACKEND (backend) ═══
+✅ package.json encontrado
+
+-- Dependências de Produção --
+  ❌ Fastify: NÃO ENCONTRADO
+  ✅ TypeScript: ^5.0.0
+  ✅ Prisma Client: ^5.22.0
+  ❌ Zod: NÃO ENCONTRADO
+  ❌ bcryptjs: NÃO ENCONTRADO
+  ❌ pg (node-postgres): NÃO ENCONTRADO
+
+═══ INFRAESTRUTURA ═══
+✅ docker-compose.yml encontrado
+═══ ARQUITETURA ═══
+-- Estrutura Frontend --
+  📁 Rotas (pages): 9
+-- Estrutura Backend --
+  ✅ Padrão Vertical Slice / Modular DETECTADO
+-- ORM Prisma --
+  ✅ backend/prisma/schema.prisma (8 modelos)
+model User {
+model Passageiro {
+model Motorista {
+model Empresa {
+model Linha {
+model Onibus {
+model PontoOnibus {
+model SolicitacaoEmbarque {
+
+═══ FIM DA ANÁLISE AUTOMATIZADA ═══

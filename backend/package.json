@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Fastify Prisma Backend",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "test": "vitest",
+    "gtfs:import": "ts-node src/scripts/import-gtfs.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/jwt": "^9.0.4",
+    "@fastify/multipart": "^9.4.0",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "7.4.0",
+    "@prisma/config": "7.4.0",
+    "@types/adm-zip": "^0.5.8",
+    "adm-zip": "^0.6.0",
+    "fastify": "5.0.0",
+    "minio": "^8.0.5",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.16.0",
+    "vitest": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prisma": "7.4.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}

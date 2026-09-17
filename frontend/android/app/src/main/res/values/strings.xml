@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PontoMB</string>
+    <string name="title_activity_main">PontoMB</string>
+    <string name="package_name">com.busacessivel.pontomb</string>
+    <string name="custom_url_scheme">com.busacessivel.pontomb</string>
+</resources>

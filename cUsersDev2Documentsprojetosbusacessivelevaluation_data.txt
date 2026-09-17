@@ -1,0 +1,135 @@
+═══════════════════════════════════════════════════════════════
+  RELATÓRIO DE ANÁLISE AUTOMATIZADA DO CODEBASE
+  Gerado por: Agente Avaliador de Projeto Acadêmico
+═══════════════════════════════════════════════════════════════
+Data da análise: 06/04/2026 às 13:55:47
+
+═══ FRONTEND (frontend) ═══
+✅ package.json encontrado
+
+-- Dependências de Produção --
+  ✅ Next.js: 16.1.6
+  ❌ React: NÃO ENCONTRADO
+  ✅ React DOM: 19.2.3
+  ✅ TypeScript: ^5.0.0
+  ✅ TailwindCSS: 4.0.0
+  ❌ Lucide React: NÃO ENCONTRADO
+  ❌ TipTap (React): NÃO ENCONTRADO
+  ❌ Prisma Client: NÃO ENCONTRADO
+  ❌ clsx: NÃO ENCONTRADO
+  ❌ tailwind-merge: NÃO ENCONTRADO
+  ❌ xlsx (SheetJS): NÃO ENCONTRADO
+  ❌ JsBarcode: NÃO ENCONTRADO
+  ❌ qrcode.react: NÃO ENCONTRADO
+  ❌ ESLint: NÃO ENCONTRADO
+  ❌ ESLint Next Config: NÃO ENCONTRADO
+  ✅ TailwindCSS PostCSS: ^4.2.2
+  ❌ Prisma Adapter PG: NÃO ENCONTRADO
+  ❌ Prisma CLI: NÃO ENCONTRADO
+  ❌ ts-node: NÃO ENCONTRADO
+
+-- Dependências NÃO mapeadas (possíveis extras) --
+  ⚠️  EXTRA: dependencies (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: devDependencies (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: ^10.4.0 (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: ^8.4.0 (NÃO CONSTA NA LISTA OFICIAL)
+
+═══ BACKEND (backend) ═══
+✅ package.json encontrado
+
+-- Dependências de Produção --
+  ❌ Fastify: NÃO ENCONTRADO
+  ✅ TypeScript: ^5.0.0
+  ✅ Prisma Client: ^5.22.0
+  ❌ Zod: NÃO ENCONTRADO
+  ❌ bcryptjs: NÃO ENCONTRADO
+  ❌ @fastify/multipart: NÃO ENCONTRADO
+  ✅ @fastify/cors: ^11.2.0
+  ❌ PDFKit: NÃO ENCONTRADO
+  ❌ pg (node-postgres): NÃO ENCONTRADO
+  ❌ dotenv: NÃO ENCONTRADO
+  ❌ Vitest: NÃO ENCONTRADO
+  ✅ ts-node-dev: ^2.0.0
+  ❌ Prisma Adapter PG: NÃO ENCONTRADO
+  ❌ Prisma CLI: NÃO ENCONTRADO
+  ❌ Fastify Zod Provider: NÃO ENCONTRADO
+
+-- Dependências NÃO mapeadas (possíveis extras) --
+  ⚠️  EXTRA: tsc (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: node dist/server.js (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: dependencies (NÃO CONSTA NA LISTA OFICIAL)
+  ⚠️  EXTRA: devDependencies (NÃO CONSTA NA LISTA OFICIAL)
+
+═══ INFRAESTRUTURA ═══
+✅ docker-compose.yml encontrado
+   Containers definidos: 0
+
+-- Dockerfiles --
+  ✅ frontend/Dockerfile presente
+  ✅ backend/Dockerfile presente
+
+-- Banco de Dados --
+  ✅ PostgreSQL via Bitnami: bitnami/postgresql:latest
+      - pgdata:/bitnami/postgresql
+
+-- Reverse Proxy --
+  ❌ Diretório nginx/conf.d/ NÃO encontrado
+
+-- Segurança SSL --
+  ⚠️  Configuração SSL/Certbot NÃO detectada localmente (pode estar apenas na VPS)
+
+-- Versionamento --
+  ✅ Repositório Git inicializado
+  ✅ Remote configurado: origin	https://github.com/isabelly0601/busacessivel.git (fetch)
+  📍 Plataforma: GitHub
+  📊 Total de commits: 5
+  📅 Primeiro commit: 2026-03-20
+  📅 Último commit: 2026-03-26
+
+  -- Últimos 10 commits --
+    8fe1040 | 2026-03-26 | docs: sync brain artifacts to repository
+    84dc978 | 2026-03-26 | Merge branch 'main' of https://github.com/isabelly0601/busacessivel
+    357a921 | 2026-03-25 | feat: initial provision - docker, refactor, faceid and persistence
+    f9918cb | 2026-03-25 | Initial commit
+    07a56b3 | 2026-03-20 | Initial commit: Projeto BusAcessivel
+
+═══ ARQUITETURA ═══
+-- Estrutura Frontend --
+
+
+-- Estrutura Backend --
+  📂 Diretórios em src/:
+    /features/ (5 arquivos)
+    /lib/ (1 arquivos)
+    /scripts/ (1 arquivos)
+    /shared/ (2 arquivos)
+  🔀 Arquivos de rotas: 0
+  ✅ Padrão Vertical Slice / Modular DETECTADO
+
+-- ORM Prisma --
+  ❌ frontend/prisma/schema.prisma NÃO encontrado
+  ✅ backend/prisma/schema.prisma (8 modelos)
+    - model User {
+    - model Passageiro {
+    - model Motorista {
+    - model Empresa {
+    - model Linha {
+    - model Onibus {
+    - model PontoOnibus {
+    - model SolicitacaoEmbarque {
+
+═══ MÉTRICAS GERAIS ═══
+-- Contagem de Arquivos --
+  .tsx: 0 arquivos
+  .ts: 10 arquivos
+  .css: 0 arquivos
+  .json: 0 arquivos
+
+-- Linhas de Código (aproximado) --
+  backend: ~438 linhas TypeScript
+
+-- Backup --
+  ❌ Container de backup NÃO configurado
+
+═══ FIM DA ANÁLISE AUTOMATIZADA ═══
+

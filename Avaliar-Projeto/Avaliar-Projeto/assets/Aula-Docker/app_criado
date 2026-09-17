@@ -1,0 +1,17 @@
+# Parâmetros de Configuração da Aplicação - Módulo Docker
+NODE_VERSION=24.13.1-alpine
+APP_PORT=3333
+DB_USER=admin
+DB_PASS=password123
+DB_NAME=aula_docker_db
+DB_HOST=database
+DB_PORT=5432
+FRAMEWORK=fastify-v5
+ORM=prisma-v7.4.0
+ADAPTER=@prisma/adapter-pg
+FRONTEND=nextjs-v16.1.6
+STYLING=tailwind-v4
+SECURITY=bcryptjs
+IMAGE_TYPE=bitnami/postgresql
+PROJECT_DOMAIN=localhost
+CASE_DOMAIN=local.dev

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #FFCC00;
+  --color-brand-secondary: #E6B800;
+  --color-bg-deep: #000000;
+  --color-bg-card: #111111;
+}
+
+@layer base {
+  :root {
+    --brand-primary: #FFCC00; 
+    --bg-deep: #000000;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    background: var(--bg-deep);
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: var(--color-bg-card);
+    border: 2px solid #222;
+    border-radius: 24px;
+  }
+
+  .btn-primary {
+    background: var(--color-brand-primary);
+    color: black;
+    font-weight: 900;
+    padding: 1.2rem 2rem;
+    border-radius: 30px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.95);
+    background: var(--color-brand-secondary);
+  }
+
+  .premium-input {
+    background: #111;
+    border: 2px solid #333;
+    border-radius: 20px;
+    padding: 1.2rem;
+    color: white;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+  }
+
+  .premium-input:focus {
+    border-color: var(--color-brand-primary);
+    outline: none;
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Esconder barra de rolagem para listas horizontais no mobile */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
