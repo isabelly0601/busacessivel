@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Bus, Volume2, Hand, CheckCircle, XCircle, Loader2, 
   Mic, Navigation, AlertTriangle, Search, Radio, Compass,
-  MapPin, ShieldAlert, Sparkles, X, ChevronDown, ChevronUp
+  MapPin, ShieldAlert, Sparkles, X, ChevronDown, ChevronUp,
+  Eye, Headphones
 } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import dynamic from 'next/dynamic';
@@ -37,11 +38,12 @@ export default function PassageiroHome() {
   // Modais de Acessibilidade
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [showCamera, setShowCamera] = useState(true);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Busca e Filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [filtroSentido, setFiltroSentido] = useState<'TODOS' | 'Centro' | 'Bairro'>('TODOS');
+  const busSectionRef = useRef<HTMLDivElement>(null);
 
   const falar = useCallback((texto: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -59,7 +61,7 @@ export default function PassageiroHome() {
     }
   }, []);
 
-  // Solicitar e Monitorar GPS com tratamento de permissão
+  // Solicitar e Monitorar GPS com feedback sonoro
   const requestGps = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       falar('Solicitando localização GPS...');
@@ -75,7 +77,7 @@ export default function PassageiroHome() {
           console.error("Erro GPS:", err);
           setGpsReady(false);
           setGpsError(true);
-          falar('Atenção: Permissão de localização negada ou GPS desativado. Ative a localização nas configurações do seu celular.');
+          falar('Atenção: Ative o GPS nas configurações do seu aparelho.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
@@ -93,7 +95,6 @@ export default function PassageiroHome() {
           setGpsError(false);
         },
         (err) => {
-          console.warn("Watch GPS:", err);
           if (err.code === 1) setGpsError(true);
         },
         { enableHighAccuracy: true, maximumAge: 5000 }
@@ -109,7 +110,7 @@ export default function PassageiroHome() {
     setToasts(prev => prev.filter(x => x.id !== id));
   };
 
-  // Linhas de ônibus com distinção transparente entre Tempo Real (GPS do veículo) e Horário Previsto
+  // Linhas de ônibus com distinção transparente entre Tempo Real e Previsto
   const listaOnibusBase: OnibusItem[] = [
     { linha: '8106', destino: 'Belo Vale / Centro', sentido: 'Centro', tempoMin: 3, distancia: '450m', isRealtime: true },
     { linha: '302',  destino: 'Estação Barreiro / Centro', sentido: 'Centro', tempoMin: 5, distancia: '780m', isRealtime: true },
@@ -123,7 +124,6 @@ export default function PassageiroHome() {
     { linha: '1502', destino: 'Vista Alegre / Bairro Guarani', sentido: 'Bairro', tempoMin: 35, distancia: '7.8 km', isRealtime: false },
   ];
 
-  // Filtro de ônibus por texto e sentido
   const onibusFiltrados = useMemo(() => {
     return listaOnibusBase.filter(item => {
       const matchText = 
@@ -145,7 +145,7 @@ export default function PassageiroHome() {
     try {
       const pontoDescricao = gpsReady && userLocation
         ? `Ponto próximo ao GPS (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})`
-        : 'Ponto de parada central';
+        : 'Ponto central de embarque';
 
       const res = await fetch('/api/boarding/simular', {
         method: 'POST',
@@ -160,27 +160,56 @@ export default function PassageiroHome() {
       if (res.ok) {
         setSolicitados(prev => new Set(prev).add(linha));
         vibrar([300, 100, 300, 100, 300]);
-        falar(`Confirmado! Solicitação enviada com sucesso para a linha ${linha}. O motorista foi avisado e vai parar para você. Fique na calçada.`);
-        addToast({ id: toastId, linha, status: 'success', msg: `✅ Linha ${linha} solicitada! Motorista notificado.` });
+        falar(`Confirmado! Solicitação enviada com sucesso para a linha ${linha}. O motorista foi avisado e vai parar para você. Aguarde na calçada.`);
+        addToast({ id: toastId, linha, status: 'success', msg: `✅ Linha ${linha} solicitada! Motorista avisado.` });
         setTimeout(() => removeToast(toastId), 6000);
       } else {
         const error = await res.json();
-        falar(`Não foi possível enviar a solicitação para a linha ${linha}. Tente novamente.`);
+        falar(`Erro ao solicitar a linha ${linha}. Tente novamente.`);
         addToast({ id: toastId, linha, status: 'error', msg: `❌ Erro: ${error.error || 'Falha ao solicitar'}` });
         setTimeout(() => removeToast(toastId), 4000);
       }
     } catch {
-      falar(`Erro de conexão ao solicitar a linha ${linha}. Verifique sua internet.`);
-      addToast({ id: toastId, linha, status: 'error', msg: '❌ Erro de conexão com o servidor.' });
+      falar(`Erro de conexão com o servidor.`);
+      addToast({ id: toastId, linha, status: 'error', msg: '❌ Erro de conexão.' });
       setTimeout(() => removeToast(toastId), 4000);
     }
   };
 
+  // Funções dos 4 cards essenciais do design
+  const handleEncontrarPonto = () => {
+    falar('Iniciando orientação até o ponto de ônibus mais próximo.');
+    vibrar([150, 50, 150]);
+    router.push('/passageiro/navegacao');
+  };
+
+  const handleEncontrarOnibus = () => {
+    falar('Localizando ônibus e linhas disponíveis para você.');
+    vibrar([100]);
+    if (busSectionRef.current) {
+      busSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    const input = document.getElementById('campo-pesquisa-linhas');
+    if (input) input.focus();
+  };
+
+  const handleReconhecerAmbiente = () => {
+    setShowCamera(true);
+    falar('Reconhecimento de ambiente ativado. Câmera aberta identificando pessoas, veículos e obstáculos no caminho.');
+    vibrar([200]);
+  };
+
+  const handleOuvirOrientacoes = () => {
+    const statusGPS = gpsReady ? 'Seu GPS está ativo e calibrado.' : 'Aguardando sinal GPS.';
+    falar(`Orientações do trajeto: ${statusGPS} Você pode dizer seu destino pelo assistente de voz a qualquer momento. Em caso de necessidade, use o botão de Ajuda e SOS.`);
+    vibrar([100, 50, 100]);
+  };
+
   return (
     <main 
-      className="flex flex-col min-h-[100dvh] bg-[#000] text-white p-4 sm:p-6 pb-28 relative"
+      className="flex flex-col min-h-[100dvh] bg-[#070a0f] text-white p-4 sm:p-6 pb-28 relative font-sans"
       role="main"
-      aria-label="Tela principal do passageiro - Aplicativo Vai de Ônibus"
+      aria-label="Assistente de transporte público por voz BusAcessível"
     >
       {/* TOASTS DE NOTIFICAÇÃO AUDÍVEIS E VISUAIS */}
       <div className="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" aria-live="assertive">
@@ -188,12 +217,12 @@ export default function PassageiroHome() {
           <div
             key={toast.id}
             className={`flex items-center gap-3 px-5 py-4 rounded-2xl border-4 shadow-2xl pointer-events-auto transition-all duration-300 ${
-              toast.status === 'loading' ? 'bg-[#1a1a00] border-[#FFCC00] text-white' :
+              toast.status === 'loading' ? 'bg-[#0f2b3e] border-[#00e6a8] text-white' :
               toast.status === 'success' ? 'bg-green-950 border-green-500 text-green-200' :
               'bg-red-950 border-red-500 text-red-200'
             }`}
           >
-            {toast.status === 'loading' && <Loader2 size={24} className="animate-spin text-[#FFCC00] shrink-0" />}
+            {toast.status === 'loading' && <Loader2 size={24} className="animate-spin text-[#00e6a8] shrink-0" />}
             {toast.status === 'success' && <CheckCircle size={24} className="text-green-400 shrink-0" />}
             {toast.status === 'error' && <XCircle size={24} className="text-red-400 shrink-0" />}
             <span className="font-black text-base flex-1">{toast.msg}</span>
@@ -206,120 +235,156 @@ export default function PassageiroHome() {
         ))}
       </div>
 
-      {/* STATUS DO GPS & TOPO */}
-      <div className="flex flex-wrap justify-between items-center gap-2 mb-3 pt-2">
-        <span className="text-[13px] text-[#FFCC00] font-black uppercase tracking-[0.25em]">
-          🚍 Vai de Ônibus
-        </span>
+      {/* CONTAINER PRINCIPAL DA PROPOSTA DE ASSISTENTE POR VOZ */}
+      <div className="bg-[#0b131e] border-2 border-white/10 rounded-[2.5rem] p-5 sm:p-7 shadow-2xl mb-6">
+        
+        {/* HEADER DA PROPOSTA (IDÊNTICO AO DESIGN) */}
+        <div className="flex justify-between items-start mb-5">
+          <div>
+            <h1 className="text-2xl font-black text-[#00e6a8] tracking-tight">BusAcessível</h1>
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-gray-400 mt-1">
+              Exemplo de Experiência do Passageiro
+            </p>
+          </div>
 
-        {/* STATUS DINÂMICO DO GPS COM BOTÃO DE AÇÃO */}
-        <button
-          onClick={requestGps}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all ${
-            gpsReady 
-              ? 'bg-green-950/70 border-green-500 text-green-300' 
-              : gpsError
-              ? 'bg-red-950/80 border-red-500 text-red-300 animate-pulse'
-              : 'bg-yellow-950/60 border-yellow-500 text-yellow-300'
-          }`}
-          aria-label={gpsReady ? "GPS Ativo com alta precisão. Toque para atualizar" : "GPS não localizado. Toque para permitir acesso à localização"}
+          <div className="flex items-center gap-2">
+            {/* STATUS GPS */}
+            <button
+              onClick={requestGps}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all ${
+                gpsReady 
+                  ? 'bg-green-950/60 border-green-500/50 text-green-300' 
+                  : gpsError
+                  ? 'bg-red-950/80 border-red-500 text-red-300 animate-pulse'
+                  : 'bg-yellow-950/60 border-yellow-500/50 text-yellow-300'
+              }`}
+              aria-label={gpsReady ? "GPS Ativo" : "Ativar GPS"}
+            >
+              <div className={`w-2 h-2 rounded-full ${gpsReady ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
+              <span>{gpsReady ? 'GPS Ativo' : 'GPS'}</span>
+            </button>
+
+            {/* BOTÃO SOS */}
+            <button
+              onClick={() => setIsHelpModalOpen(true)}
+              className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center border border-white text-white active:scale-95"
+              aria-label="Ajuda e Emergência SOS"
+            >
+              <ShieldAlert size={18} />
+            </button>
+
+            {/* BOTÃO OUVIR INSTRUÇÃO */}
+            <button
+              onClick={() => falar('Bem-vindo ao BusAcessível. Toque no card azul para falar para onde deseja ir, ou utilize uma das quatro ações abaixo.')}
+              className="w-9 h-9 rounded-full bg-[#00e6a8] flex items-center justify-center border border-black text-black active:scale-95"
+              aria-label="Ouvir instruções por voz"
+            >
+              <Volume2 size={20} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+
+        {/* HERO CARD CENTRAL: "OLÁ! PARA ONDE VOCÊ DESEJA IR?" (IDÊNTICO AO DESIGN) */}
+        <div 
+          onClick={() => setIsVoiceModalOpen(true)}
+          className="bg-gradient-to-b from-[#123652] to-[#0c273c] border border-[#1e5077]/60 rounded-3xl p-6 sm:p-8 text-center flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-all shadow-[0_10px_35px_rgba(0,180,216,0.15)] mb-6 hover:border-[#00e6a8]/50"
+          role="button"
+          tabIndex={0}
+          aria-label="Assistente de voz: Olá! Para onde você deseja ir? Toque para falar seu destino agora"
         >
-          <div className={`w-2.5 h-2.5 rounded-full ${gpsReady ? 'bg-green-400 animate-pulse' : gpsError ? 'bg-red-400' : 'bg-yellow-400 animate-ping'}`} />
-          <span className="text-xs font-black uppercase tracking-wider">
-            {gpsReady ? 'GPS Ativo' : gpsError ? '⚠️ Ativar GPS' : 'Buscando GPS...'}
-          </span>
-        </button>
+          <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-3 text-white border border-white/10">
+            <Mic size={30} strokeWidth={2.5} className="text-white" />
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1">
+            Olá! Para onde você deseja ir?
+          </h2>
+
+          <p className="text-sm sm:text-base font-semibold text-cyan-100/70 max-w-sm">
+            Diga seu destino. Vou ajudar você durante todo o trajeto.
+          </p>
+
+          <div className="mt-4">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#033b32] text-[#00e6a8] border border-[#00e6a8]/40 text-xs font-black uppercase tracking-wider shadow-sm">
+              <Sparkles size={14} /> Assistente de voz
+            </span>
+          </div>
+        </div>
+
+        {/* AS 4 AÇÕES ESSENCIAIS (GRADE 2X2 EXATA DA IMAGEM) */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6" aria-label="Ações essenciais do passageiro">
+          
+          {/* 1. ENCONTRAR PONTO */}
+          <button
+            onClick={handleEncontrarPonto}
+            className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#09111b] border border-white/10 active:border-[#00e6a8] transition-all hover:bg-[#0d1826]"
+            aria-label="Encontrar ponto. Orientação por áudio"
+          >
+            <div className="mb-2 text-white">
+              <MapPin size={32} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-base text-white leading-tight">Encontrar ponto</span>
+            <span className="text-xs text-gray-400 font-medium mt-0.5">Orientação por áudio</span>
+          </button>
+
+          {/* 2. ENCONTRAR ÔNIBUS */}
+          <button
+            onClick={handleEncontrarOnibus}
+            className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#09111b] border border-white/10 active:border-[#00e6a8] transition-all hover:bg-[#0d1826]"
+            aria-label="Encontrar ônibus. Identificação da linha"
+          >
+            <div className="mb-2 text-white">
+              <Bus size={32} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-base text-white leading-tight">Encontrar ônibus</span>
+            <span className="text-xs text-gray-400 font-medium mt-0.5">Identificação da linha</span>
+          </button>
+
+          {/* 3. RECONHECER AMBIENTE */}
+          <button
+            onClick={handleReconhecerAmbiente}
+            className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#09111b] border border-white/10 active:border-[#00e6a8] transition-all hover:bg-[#0d1826]"
+            aria-label="Reconhecer ambiente. Descrição por voz"
+          >
+            <div className="mb-2 text-white">
+              <Eye size={32} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-base text-white leading-tight">Reconhecer ambiente</span>
+            <span className="text-xs text-gray-400 font-medium mt-0.5">Descrição por voz</span>
+          </button>
+
+          {/* 4. OUVIR ORIENTAÇÕES */}
+          <button
+            onClick={handleOuvirOrientacoes}
+            className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#09111b] border border-white/10 active:border-[#00e6a8] transition-all hover:bg-[#0d1826]"
+            aria-label="Ouvir orientações. Instruções durante a viagem"
+          >
+            <div className="mb-2 text-white">
+              <Headphones size={32} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-base text-white leading-tight">Ouvir orientações</span>
+            <span className="text-xs text-gray-400 font-medium mt-0.5">Instruções durante a viagem</span>
+          </button>
+
+        </div>
+
       </div>
 
-      {/* HEADER PRINCIPAL COM LEITURA EM VOZ ALTA */}
-      <header className="flex justify-between items-center mb-5">
-        <div>
-          <h1 className="text-4xl font-black text-[#FFCC00] tracking-tight">Painel Acessível</h1>
-          <p className="text-gray-300 font-bold text-sm">Autonomia e mobilidade no transporte público</p>
-        </div>
-        <button
-          onClick={() => falar('Tela inicial do passageiro. No topo você encontra quatro botões principais: Falar com o aplicativo, Encontrar ponto de ônibus, Pesquisar linhas e Botão de Ajuda. Abaixo está a câmera com detector de obstáculos e a lista dos próximos ônibus.')}
-          className="w-14 h-14 bg-[#FFCC00] rounded-full flex items-center justify-center border-4 border-black active:scale-95 transition-transform shadow-lg shrink-0"
-          aria-label="Ouvir instruções de toda a página por áudio"
-        >
-          <Volume2 color="#000" size={28} strokeWidth={3} />
-        </button>
-      </header>
-
-      {/* 4 BOTÕES GIGANTES DE AÇÃO RÁPIDA (REQUISITO 4 DA PROPOSTA) */}
-      <section 
-        className="grid grid-cols-2 gap-3 sm:gap-4 mb-6"
-        aria-label="Ações rápidas principais"
-      >
-        {/* 1. FALAR COM O APLICATIVO */}
-        <button
-          onClick={() => setIsVoiceModalOpen(true)}
-          className="bg-[#FFCC00] text-black p-5 rounded-[2rem] flex flex-col items-center justify-center text-center gap-2 border-4 border-black active:scale-95 transition-all shadow-[0_0_20px_rgba(255,204,0,0.3)] min-h-[120px]"
-          aria-label="Falar com o aplicativo por comando de voz"
-        >
-          <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center">
-            <Mic color="#FFCC00" size={28} strokeWidth={3} />
-          </div>
-          <span className="font-black text-lg leading-tight uppercase">Falar com o App</span>
-        </button>
-
-        {/* 2. ENCONTRAR PONTO DE ÔNIBUS */}
-        <button
-          onClick={() => {
-            falar('Abrindo navegação guiada até o ponto de ônibus mais próximo.');
-            router.push('/passageiro/navegacao');
-          }}
-          className="bg-[#111] text-white p-5 rounded-[2rem] flex flex-col items-center justify-center text-center gap-2 border-4 border-[#FFCC00] active:scale-95 transition-all shadow-lg min-h-[120px]"
-          aria-label="Encontrar ponto de ônibus e iniciar navegação guiada"
-        >
-          <div className="w-12 h-12 rounded-full bg-[#FFCC00] flex items-center justify-center">
-            <Compass color="#000" size={28} strokeWidth={3} />
-          </div>
-          <span className="font-black text-lg leading-tight uppercase text-[#FFCC00]">Achar Ponto</span>
-        </button>
-
-        {/* 3. PESQUISAR LINHA */}
-        <button
-          onClick={() => {
-            const el = document.getElementById('campo-pesquisa-linhas');
-            if (el) el.focus();
-            falar('Pesquisar linhas de ônibus. Digite o número ou selecione na lista abaixo.');
-          }}
-          className="bg-[#111] text-white p-4 rounded-[2rem] flex flex-col items-center justify-center text-center gap-2 border-4 border-gray-700 active:border-[#FFCC00] transition-all min-h-[110px]"
-          aria-label="Buscar linha de ônibus pelo número ou destino"
-        >
-          <Search color="#FFCC00" size={28} strokeWidth={3} />
-          <span className="font-black text-base leading-tight uppercase">Pesquisar Linha</span>
-        </button>
-
-        {/* 4. BOTÃO DE AJUDA & SOS */}
-        <button
-          onClick={() => setIsHelpModalOpen(true)}
-          className="bg-red-600 text-white p-4 rounded-[2rem] flex flex-col items-center justify-center text-center gap-2 border-4 border-white active:scale-95 transition-all shadow-[0_0_25px_rgba(239,68,68,0.5)] min-h-[110px]"
-          aria-label="Botão de Ajuda e Emergência. Toque para contatar pessoa de confiança ou acionar alarme"
-        >
-          <ShieldAlert color="#fff" size={30} strokeWidth={3} className="animate-pulse" />
-          <span className="font-black text-base leading-tight uppercase">Ajuda & SOS</span>
-        </button>
-      </section>
-
-      {/* CÂMERA E MAPA COM TOGGLE ACESSÍVEL */}
-      <section className="flex flex-col gap-4 mb-6" aria-label="Câmera de obstáculos e mapa">
-        <div className="flex justify-between items-center">
+      {/* CÂMERA & MAPA DE NAVEGAÇÃO INTEGRADOS */}
+      <section className="flex flex-col gap-4 mb-6" aria-label="Reconhecimento visual e mapa">
+        <div className="flex justify-between items-center px-1">
           <div className="flex items-center gap-2">
-            <span className="text-[#FFCC00] text-xl">👁️</span>
-            <h2 className="text-[#FFCC00] font-black text-xl uppercase tracking-wider">Câmera & IA</h2>
+            <span className="text-[#00e6a8] font-black uppercase text-sm tracking-wider">👁️ Reconhecimento Visual</span>
           </div>
           <button
             onClick={() => {
               const novo = !showCamera;
               setShowCamera(novo);
-              falar(novo ? 'Câmera ativada.' : 'Câmera minimizada.');
+              falar(novo ? 'Câmera aberta.' : 'Câmera oculta.');
             }}
-            className="flex items-center gap-2 text-xs font-bold bg-[#111] border-2 border-gray-700 px-3 py-1.5 rounded-full text-gray-300 active:border-[#FFCC00]"
-            aria-label={showCamera ? "Minimizar câmera de detecção" : "Exibir câmera de detecção"}
+            className="text-xs font-bold bg-[#111] border border-gray-700 px-3 py-1 rounded-full text-gray-300"
           >
-            {showCamera ? <>Ocultar <ChevronUp size={16} /></> : <>Exibir Câmera <ChevronDown size={16} /></>}
+            {showCamera ? 'Minimizar Câmera' : 'Abrir Câmera'}
           </button>
         </div>
 
@@ -334,164 +399,135 @@ export default function PassageiroHome() {
         />
       </section>
 
-      {/* SEÇÃO DE ÔNIBUS COM PESQUISA E FILTROS */}
-      <section className="mt-2 flex-1" aria-label="Lista de linhas de ônibus próximas">
-        <div className="flex justify-between items-center mb-3">
+      {/* SEÇÃO DE ÔNIBUS E IDENTIFICAÇÃO DA LINHA */}
+      <section ref={busSectionRef} className="mt-2 flex-1" aria-label="Próximos ônibus e linhas">
+        <div className="flex justify-between items-center mb-3 px-1">
           <div className="flex items-center gap-2">
-            <Bus color="#FFCC00" size={26} />
-            <h2 className="text-[#FFCC00] font-black text-2xl uppercase tracking-wider">Próximos Ônibus</h2>
+            <Bus color="#00e6a8" size={24} />
+            <h2 className="text-[#00e6a8] font-black text-xl uppercase tracking-wider">Próximos Ônibus</h2>
           </div>
           <span className="text-xs font-bold text-gray-400">
-            {onibusFiltrados.length} disponíveis
+            {onibusFiltrados.length} linhas
           </span>
         </div>
 
-        {/* BARRA DE PESQUISA RÁPIDA */}
+        {/* CAMPO DE PESQUISA */}
         <div className="relative mb-3">
           <input
             id="campo-pesquisa-linhas"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por número (ex: 8106, 51) ou destino..."
-            className="w-full bg-[#111] border-4 border-[#333] focus:border-[#FFCC00] text-white text-lg font-bold py-4 pl-12 pr-12 rounded-2xl outline-none placeholder-gray-500"
-            aria-label="Campo para digitar e filtrar linhas de ônibus"
+            placeholder="Buscar por linha (ex: 8106, 51) ou destino..."
+            className="w-full bg-[#111] border-2 border-gray-700 focus:border-[#00e6a8] text-white text-base font-bold py-3.5 pl-11 pr-11 rounded-2xl outline-none placeholder-gray-500"
+            aria-label="Filtrar linhas de ônibus"
           />
-          <Search size={22} color="#FFCC00" className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search size={20} color="#00e6a8" className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           {searchQuery && (
             <button
-              onClick={() => { setSearchQuery(''); falar('Busca limpa.'); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1"
-              aria-label="Limpar texto da busca"
+              onClick={() => { setSearchQuery(''); falar('Filtro removido.'); }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              aria-label="Limpar filtro"
             >
-              <X size={22} />
+              <X size={20} />
             </button>
           )}
         </div>
 
-        {/* FILTROS DE SENTIDO (TODOS / CENTRO / BAIRRO) */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1" role="radiogroup" aria-label="Filtrar sentido do ônibus">
+        {/* FILTROS DE SENTIDO */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1" role="radiogroup">
           {(['TODOS', 'Centro', 'Bairro'] as const).map(sentido => (
             <button
               key={sentido}
               onClick={() => {
                 setFiltroSentido(sentido);
-                falar(`Filtrando por ${sentido === 'TODOS' ? 'todos os sentidos' : `sentido ${sentido}`}`);
+                falar(`Filtrado por ${sentido === 'TODOS' ? 'todos os sentidos' : `sentido ${sentido}`}`);
               }}
-              className={`px-4 py-2.5 rounded-xl font-black text-sm uppercase transition-all border-2 ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs uppercase border transition-all ${
                 filtroSentido === sentido
-                  ? 'bg-[#FFCC00] text-black border-black shadow-md'
-                  : 'bg-[#111] text-gray-300 border-[#333]'
+                  ? 'bg-[#00e6a8] text-black border-[#00e6a8] font-black'
+                  : 'bg-[#111] text-gray-300 border-gray-800'
               }`}
-              role="radio"
-              aria-checked={filtroSentido === sentido}
             >
               {sentido === 'TODOS' ? 'Todos os Sentidos' : `Sentido ${sentido}`}
             </button>
           ))}
         </div>
 
-        {/* LISTAGEM DOS CARDS DE ÔNIBUS */}
-        <div className="flex flex-col gap-4">
-          {onibusFiltrados.length === 0 ? (
-            <div className="bg-[#111] border-2 border-gray-700 p-8 rounded-2xl text-center">
-              <p className="text-xl font-bold text-gray-400">Nenhum ônibus encontrado para "{searchQuery}".</p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-4 bg-[#FFCC00] text-black font-black px-6 py-3 rounded-xl uppercase text-sm"
+        {/* LISTA DE ÔNIBUS */}
+        <div className="flex flex-col gap-3.5">
+          {onibusFiltrados.map((onibus, index) => {
+            const jaSolicitado = solicitados.has(onibus.linha);
+            return (
+              <div
+                key={index}
+                onClick={() => router.push(`/passageiro/linha/${onibus.linha}`)}
+                className={`flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  jaSolicitado
+                    ? 'bg-green-950/80 border-green-500'
+                    : 'bg-[#101722] border-white/5 active:border-[#00e6a8]'
+                }`}
               >
-                Ver todas as linhas
-              </button>
-            </div>
-          ) : (
-            onibusFiltrados.map((onibus, index) => {
-              const jaSolicitado = solicitados.has(onibus.linha);
-              return (
-                <div
-                  key={index}
-                  onClick={() => router.push(`/passageiro/linha/${onibus.linha}`)}
-                  className={`flex flex-col p-5 rounded-[2rem] border-4 cursor-pointer transition-all duration-300 ${
-                    jaSolicitado
-                      ? 'bg-green-950 border-green-500 shadow-[0_0_25px_rgba(34,197,94,0.4)]'
-                      : 'bg-[#111] border-[#333] active:border-[#FFCC00] hover:border-gray-500'
-                  }`}
-                  role="article"
-                  aria-label={`Linha ${onibus.linha}, ${onibus.destino}, chega em ${onibus.tempoMin} minutos. ${onibus.isRealtime ? 'Rastreamento em tempo real via GPS' : 'Horário estimado de escala'}`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      
-                      {/* BADGE DA LINHA */}
-                      <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-4 shadow-lg shrink-0 transition-colors ${
-                        jaSolicitado ? 'bg-green-500 border-green-700' : 'bg-[#FFCC00] border-black shadow-[0_0_15px_rgba(255,204,0,0.25)]'
-                      }`}>
-                        {jaSolicitado ? (
-                          <CheckCircle color="#fff" size={36} />
-                        ) : (
-                          <span className="text-black font-black text-2xl tracking-tighter">{onibus.linha}</span>
-                        )}
-                      </div>
-
-                      {/* INFORMAÇÕES DA ROTA */}
-                      <div className="flex flex-col gap-1">
-                        <p className="font-black text-xl text-white leading-tight">{onibus.destino}</p>
-                        
-                        {/* DISTINÇÃO CLARA ENTRE TEMPO REAL E ESTIMADO */}
-                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                          {onibus.isRealtime ? (
-                            <span className="bg-green-900/80 text-green-300 text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border border-green-500/50 flex items-center gap-1">
-                              <Radio size={12} className="animate-pulse" /> Tempo Real GPS
-                            </span>
-                          ) : (
-                            <span className="bg-gray-800 text-gray-300 text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full border border-gray-600">
-                              🕒 Previsto
-                            </span>
-                          )}
-                          <span className="text-sm font-black text-[#FFCC00]">
-                            {jaSolicitado ? '✅ Embarque solicitado' : `Chega em ${onibus.tempoMin} min (${onibus.distancia})`}
-                          </span>
-                        </div>
-                      </div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl shrink-0 ${
+                      jaSolicitado ? 'bg-green-500 text-white' : 'bg-[#00e6a8] text-black'
+                    }`}>
+                      {jaSolicitado ? <CheckCircle size={28} /> : onibus.linha}
                     </div>
 
-                    {/* BOTÃO DE OUVIR A LINHA ESPECÍFICA */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        falar(`Linha ${onibus.linha}, ${onibus.destino}. Chega em ${onibus.tempoMin} minutos, a ${onibus.distancia} de distância. ${onibus.isRealtime ? 'Rastreado em tempo real via GPS' : 'Horário previsto na tabela'}.`);
-                      }}
-                      className="w-14 h-14 rounded-full bg-[#222] border-2 border-gray-600 flex items-center justify-center active:bg-[#333] shrink-0"
-                      aria-label={`Ouvir detalhes da linha ${onibus.linha}`}
-                    >
-                      <Volume2 color="#fff" size={26} />
-                    </button>
+                    <div>
+                      <p className="font-bold text-base text-white leading-snug">{onibus.destino}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {onibus.isRealtime ? (
+                          <span className="text-[10px] font-black uppercase text-green-400 flex items-center gap-1">
+                            <Radio size={10} className="animate-pulse" /> GPS Tempo Real
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-400">🕒 Horário Tabela</span>
+                        )}
+                        <span className="text-xs font-bold text-[#00e6a8]">
+                          {jaSolicitado ? '✅ Solicitado' : `${onibus.tempoMin} min (${onibus.distancia})`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* BOTÃO GIGANTE DE SOLICITAR EMBARQUE */}
                   <button
-                    onClick={(e) => handleSolicitar(e, onibus.linha)}
-                    disabled={jaSolicitado}
-                    className={`w-full font-black text-xl py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${
-                      jaSolicitado
-                        ? 'bg-green-800 text-green-200 border-green-600 cursor-default opacity-90'
-                        : 'bg-[#FFCC00] text-black border-black shadow-md hover:bg-yellow-400'
-                    }`}
-                    aria-label={`Solicitar parada e embarque para a linha ${onibus.linha}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      falar(`Linha ${onibus.linha}, ${onibus.destino}. Chega em ${onibus.tempoMin} minutos. ${onibus.isRealtime ? 'Rastreado por GPS' : 'Horário da escala'}.`);
+                    }}
+                    className="w-11 h-11 rounded-full bg-[#1b2636] flex items-center justify-center active:bg-[#25364e]"
+                    aria-label={`Ouvir dados da linha ${onibus.linha}`}
                   >
-                    {jaSolicitado ? (
-                      <><CheckCircle size={24} /> Motorista Avisado!</>
-                    ) : (
-                      <><Hand size={24} strokeWidth={3} /> Solicitar Embarque</>
-                    )}
+                    <Volume2 size={20} color="#fff" />
                   </button>
                 </div>
-              );
-            })
-          )}
+
+                <button
+                  onClick={(e) => handleSolicitar(e, onibus.linha)}
+                  disabled={jaSolicitado}
+                  className={`w-full font-black text-base py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                    jaSolicitado
+                      ? 'bg-green-800 text-green-100 cursor-default'
+                      : 'bg-[#00e6a8] text-black active:scale-95'
+                  }`}
+                  aria-label={`Solicitar parada do ônibus ${onibus.linha}`}
+                >
+                  {jaSolicitado ? (
+                    <><CheckCircle size={20} /> Embarque Solicitado!</>
+                  ) : (
+                    <><Hand size={20} /> Solicitar Embarque</>
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* MODAL DO ASSISTENTE DE VOZ INTELIGENTE */}
+      {/* MODAL DO ASSISTENTE DE VOZ */}
       <VoiceAssistantModal
         isOpen={isVoiceModalOpen}
         onClose={() => setIsVoiceModalOpen(false)}
