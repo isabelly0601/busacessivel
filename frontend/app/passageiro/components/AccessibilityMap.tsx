@@ -22,9 +22,9 @@ function calcBearing(from: { lat: number; lng: number }, to: { lat: number; lng:
 }
 
 function bearingToText(bearing: number): string {
-  if (bearing < 45 || bearing >= 315) return 'Continue para o norte';
-  if (bearing >= 45 && bearing < 135) return 'Vire à direita';
-  if (bearing >= 135 && bearing < 225) return 'Continue para trás';
+  if (bearing < 35 || bearing >= 325) return 'Continue em frente';
+  if (bearing >= 35 && bearing < 150) return 'Vire à direita';
+  if (bearing >= 150 && bearing < 210) return 'Dê meia-volta';
   return 'Vire à esquerda';
 }
 
@@ -88,16 +88,27 @@ export default function AccessibilityMap({ userLocation, targetLocation, onArriv
       const last = lastDistRef.current;
       const shouldSpeak = last === null ||
         (last > 50 && dist <= 50) || (last > 20 && dist <= 20) ||
-        (last > 5 && dist <= 5) || Math.abs(last - dist) >= 25;
+        (last > 10 && dist <= 10) || (last > 5 && dist <= 5) || Math.abs(last - dist) >= 20;
 
       if (shouldSpeak) {
         if (dist <= 5) {
-          falar('Você chegou ao ponto de ônibus!');
+          falar('Você chegou ao ponto de ônibus! Aguarde o seu embarque.');
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([600, 200, 600]);
+          }
           if (onArrived) onArrived();
-        } else if (dist <= 20) {
-          falar(`Quase lá! ${dist} metros. ${dir}.`);
+        } else if (dist <= 15) {
+          falar(`Você está chegando ao ponto! Apenas ${dist} metros. ${dir}.`);
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
+        } else if (dist <= 40) {
+          falar(`Aproximando-se do ponto. ${dist} metros. ${dir}.`);
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([150]);
+          }
         } else {
-          falar(`${dir}. ${dist} metros até o ponto.`);
+          falar(`${dir}. Siga por ${dist} metros.`);
         }
         lastDistRef.current = dist;
       }
