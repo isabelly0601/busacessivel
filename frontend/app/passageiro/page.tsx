@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Bus, Volume2, Hand, CheckCircle, XCircle, Loader2, 
+  Bus, Volume2, VolumeX, Hand, CheckCircle, XCircle, Loader2, 
   Mic, Navigation, AlertTriangle, Search, Radio, Compass,
   MapPin, ShieldAlert, Sparkles, X, ChevronDown, ChevronUp,
   Eye, Headphones
@@ -35,6 +35,9 @@ export default function PassageiroHome() {
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const [solicitados, setSolicitados] = useState<Set<string>>(new Set());
 
+  // Controle de Áudio (Silêncio / Mudo)
+  const [audioAtivo, setAudioAtivo] = useState(true);
+
   // Modais de Acessibilidade
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -46,6 +49,7 @@ export default function PassageiroHome() {
   const busSectionRef = useRef<HTMLDivElement>(null);
 
   const falar = useCallback((texto: string) => {
+    if (!audioAtivo) return;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texto);
@@ -53,7 +57,24 @@ export default function PassageiroHome() {
       u.rate = 1.0;
       window.speechSynthesis.speak(u);
     }
-  }, []);
+  }, [audioAtivo]);
+
+  const toggleAudio = () => {
+    if (audioAtivo) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setAudioAtivo(false);
+    } else {
+      setAudioAtivo(true);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance('Voz do aplicativo ativada.');
+        u.lang = 'pt-BR';
+        window.speechSynthesis.speak(u);
+      }
+    }
+  };
 
   const vibrar = useCallback((ms: number | number[]) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -61,30 +82,25 @@ export default function PassageiroHome() {
     }
   }, []);
 
-  // Solicitar e Monitorar GPS com feedback sonoro
+  // Solicitar e Monitorar GPS silenciosamente
   const requestGps = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      falar('Solicitando localização GPS...');
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           setGpsReady(true);
           setGpsError(false);
-          falar('Localização GPS obtida com sucesso.');
-          vibrar([100, 50, 100]);
+          vibrar([80]);
         },
         (err) => {
-          console.error("Erro GPS:", err);
+          console.warn("GPS aviso:", err);
           setGpsReady(false);
           setGpsError(true);
-          falar('Atenção: Ative o GPS nas configurações do seu aparelho.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
-    } else {
-      falar('Geolocalização não suportada neste dispositivo.');
     }
-  }, [falar, vibrar]);
+  }, [vibrar]);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
@@ -273,13 +289,18 @@ export default function PassageiroHome() {
               <ShieldAlert size={18} />
             </button>
 
-            {/* BOTÃO OUVIR INSTRUÇÃO */}
+            {/* BOTÃO SILENCIAR / ATIVAR ÁUDIO */}
             <button
-              onClick={() => falar('Bem-vindo ao BusAcessível. Toque no card azul para falar para onde deseja ir, ou utilize uma das quatro ações abaixo.')}
-              className="w-9 h-9 rounded-full bg-[#00e6a8] flex items-center justify-center border border-black text-black active:scale-95"
-              aria-label="Ouvir instruções por voz"
+              onClick={toggleAudio}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-black transition-all ${
+                audioAtivo 
+                  ? 'bg-[#00e6a8] border-black text-black shadow-md' 
+                  : 'bg-red-950/80 border-red-500 text-red-300'
+              }`}
+              aria-label={audioAtivo ? "Silenciar voz do aplicativo" : "Ativar voz do aplicativo"}
             >
-              <Volume2 size={20} strokeWidth={2.5} />
+              {audioAtivo ? <Volume2 size={18} strokeWidth={2.5} /> : <VolumeX size={18} strokeWidth={2.5} />}
+              <span>{audioAtivo ? 'Voz' : 'Mudo'}</span>
             </button>
           </div>
         </div>

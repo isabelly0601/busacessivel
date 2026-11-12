@@ -10,6 +10,7 @@ interface MapProps {
   targetLocation: { lat: number; lng: number } | null;
   onArrived?: () => void;
   falar: (texto: string) => void;
+  falarOrientacoes?: boolean;
 }
 
 function calcBearing(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
@@ -28,7 +29,7 @@ function bearingToText(bearing: number): string {
   return 'Vire à esquerda';
 }
 
-export default function AccessibilityMap({ userLocation, targetLocation, onArrived, falar }: MapProps) {
+export default function AccessibilityMap({ userLocation, targetLocation, onArrived, falar, falarOrientacoes = false }: MapProps) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<any>(null);
@@ -90,7 +91,8 @@ export default function AccessibilityMap({ userLocation, targetLocation, onArriv
         (last > 50 && dist <= 50) || (last > 20 && dist <= 20) ||
         (last > 10 && dist <= 10) || (last > 5 && dist <= 5) || Math.abs(last - dist) >= 20;
 
-      if (shouldSpeak) {
+      // SÓ FALA SE falarOrientacoes ESTIVER HABILITADO (na tela de navegação)
+      if (falarOrientacoes && shouldSpeak) {
         if (dist <= 5) {
           falar('Você chegou ao ponto de ônibus! Aguarde o seu embarque.');
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -113,7 +115,7 @@ export default function AccessibilityMap({ userLocation, targetLocation, onArriv
         lastDistRef.current = dist;
       }
     }
-  }, [userLocation, targetLocation, falar, onArrived]);
+  }, [userLocation, targetLocation, falar, falarOrientacoes, onArrived]);
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border-8 border-[#FFCC00] shadow-[0_0_30px_rgba(255,204,0,0.3)]" style={{ height: '45vh' }}>

@@ -360,19 +360,20 @@ export default function ObstacleDetector({ falar, vibrar, active }: ObstacleDete
           const timeSinceGlobal = now - lastGlobalAlertRef.current;
           const timeSinceClass = now - lastAlertForClass;
 
-          if (timeSinceGlobal > 2200 && timeSinceClass > 3800) {
+          // Fala apenas se passou pelo menos 6s do último alerta geral e 12s para o mesmo objeto
+          if (timeSinceGlobal > 6000 && timeSinceClass > 12000) {
             const area = (topObj.bbox[2] * topObj.bbox[3]) / (canvas.width * canvas.height);
-            const isVeryClose = area > 0.18 || topObj.class === 'degrau' || topObj.class === 'escada';
+            const isVeryClose = area > 0.22 || topObj.class === 'degrau' || topObj.class === 'escada';
 
             let speechText = `${name} no caminho.`;
             if (topObj.class === 'degrau') {
-              speechText = 'ATENÇÃO! Degrau à frente!';
+              speechText = 'Atenção, degrau à frente.';
             } else if (topObj.class === 'escada') {
-              speechText = 'ATENÇÃO! Escada à frente!';
+              speechText = 'Atenção, escada à frente.';
             } else if (topObj.class === 'obstaculo') {
-              speechText = 'ATENÇÃO! Obstáculo à frente! Reduza o passo.';
+              speechText = 'Atenção, obstáculo à frente.';
             } else if (isVeryClose) {
-              speechText = `ATENÇÃO! ${name} muito perto! Pare!`;
+              speechText = `Atenção, ${name} muito perto. Pare.`;
             }
 
             vibrar(topObj.class === 'escada' || isVeryClose ? [800, 200, 800] : [300, 100, 300]);
@@ -422,12 +423,10 @@ export default function ObstacleDetector({ falar, vibrar, active }: ObstacleDete
         streamRef.current = stream;
         if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
         setStatus('ready');
-        falar('Inteligência artificial pronta. Monitorando obstáculos à frente. Lembre-se: este recurso não substitui o uso de bengala.');
         rafRef.current = requestAnimationFrame(detect);
       } catch {
         if (mountedRef.current) {
           setStatus('error');
-          falar('Não foi possível ativar a câmera. Verifique a permissão de acesso.');
         }
       }
     };
@@ -438,7 +437,7 @@ export default function ObstacleDetector({ falar, vibrar, active }: ObstacleDete
       cancelAnimationFrame(rafRef.current);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
-  }, [active, falar, detect]);
+  }, [active, detect]);
 
   if (!active) return null;
 

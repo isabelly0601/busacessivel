@@ -106,6 +106,7 @@ export default function NavegacaoPage() {
             userLocation={userLoc}
             targetLocation={targetLoc}
             falar={falar}
+            falarOrientacoes={true}
           />
         </div>
       </div>
