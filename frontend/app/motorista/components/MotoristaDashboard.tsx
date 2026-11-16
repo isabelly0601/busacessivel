@@ -206,9 +206,16 @@ export default function MotoristaDashboard({
     falar(`Viagem finalizada na linha ${lineCode}.`);
   };
 
-  // Determina se deve exibir o card de alerta na tela inicial
-  const temAlertaPendente = alerts.length > 0 || alertaSimuladoAtivo;
-  const textoPontoAtual = alerts[0]?.ponto?.nomeDescricao || proximaParada.nome;
+  // Determina se deve exibir o card de alerta na tela inicial (alerta real tem prioridade total)
+  const alertaAtivo = alerts.length > 0 ? alerts[0] : (alertaSimuladoAtivo ? {
+    id: 'simulado',
+    ponto: { nomeDescricao: proximaParada.nome },
+    passageiro: { user: { nome: 'Passageiro PCD' } }
+  } : null);
+
+  const temAlertaPendente = !!alertaAtivo;
+  const textoPontoAtual = alertaAtivo?.ponto?.nomeDescricao || proximaParada.nome;
+  const textoPassageiro = alertaAtivo?.passageiro?.user?.nome || 'Passageiro PCD';
 
   return (
     <div className="flex justify-center bg-[#050914] min-h-[100dvh] text-white font-sans antialiased select-none">
@@ -360,8 +367,8 @@ export default function MotoristaDashboard({
                     </h3>
                     <p className="text-xs text-slate-300 leading-snug mt-1 font-normal">
                       {alertaConfirmadoLocal
-                        ? 'O passageiro foi notificado que você está chegando ao ponto.'
-                        : 'Um passageiro com deficiência visual está aguardando no próximo ponto.'}
+                        ? `Notificado! Aguarde o embarque de ${textoPassageiro}.`
+                        : `${textoPassageiro} aguardando em: ${textoPontoAtual}.`}
                     </p>
                   </div>
 
