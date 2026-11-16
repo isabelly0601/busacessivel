@@ -76,16 +76,7 @@ export default function MotoristaPage() {
             if ('vibrate' in navigator) {
               navigator.vibrate([400, 200, 400, 200, 400]);
             }
-
-            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-              const msg = new SpeechSynthesisUtterance(
-                `Atenção motorista! Solicitação de embarque para passageiro com deficiência visual na linha ${lineCode}.`
-              );
-              msg.lang = 'pt-BR';
-              msg.rate = 1.0;
-              window.speechSynthesis.cancel();
-              window.speechSynthesis.speak(msg);
-            }
+            // Assistência de voz desativada para o motorista conforme solicitação (100% visual/tátil)
           }
           lastAlertsCount.current = lista.length;
         }

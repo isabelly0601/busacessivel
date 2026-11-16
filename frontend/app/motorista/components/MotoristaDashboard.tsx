@@ -113,17 +113,10 @@ export default function MotoristaDashboard({
     return () => clearInterval(timer);
   }, []);
 
-  // ── Síntese de Voz (TTS) ──
-  const falar = useCallback((texto: string) => {
-    if (!audioAtivo) return;
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(texto);
-      u.lang = 'pt-BR';
-      u.rate = speechRate;
-      window.speechSynthesis.speak(u);
-    }
-  }, [audioAtivo, speechRate]);
+  // ── Síntese de Voz (TTS) desativada para o motorista conforme pedido ──
+  const falar = useCallback((_texto: string) => {
+    // Motorista opera em silêncio (áudio exclusivo do passageiro)
+  }, []);
 
   // ── Feedback Tátil ──
   const vibrar = useCallback((ms: number | number[]) => {
@@ -140,7 +133,7 @@ export default function MotoristaDashboard({
     const pontoNome = alerts[0]?.ponto?.nomeDescricao || proximaParada.nome;
     const passageiroNome = alerts[0]?.passageiro?.user?.nome || 'Passageiro com deficiência visual';
 
-    falar(`Embarque confirmado no ponto ${pontoNome}. Passageiro avisado que o ônibus está a caminho.`);
+    // Sem fala para o motorista — confirmação 100% visual e tátil
 
     // Registra no histórico
     const now = new Date();
@@ -218,28 +211,8 @@ export default function MotoristaDashboard({
   const textoPassageiro = alertaAtivo?.passageiro?.user?.nome || 'Passageiro PCD';
 
   return (
-    <div className="flex justify-center bg-[#050914] min-h-[100dvh] text-white font-sans antialiased select-none">
-      <main className="w-full max-w-md bg-[#070e1e] flex flex-col min-h-[100dvh] relative shadow-2xl overflow-x-hidden pb-20">
-
-        {/* ── BARRA DE STATUS MOBILE (14:27 | 4G | 87%) ── */}
-        <div className="flex justify-between items-center px-6 pt-3 pb-1 text-xs text-slate-300 font-semibold tracking-tight">
-          <span>{currentTime}</span>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-0.5 text-[11px] font-bold text-slate-200">
-              <span className="inline-block w-1 h-2 bg-slate-300 rounded-xs"></span>
-              <span className="inline-block w-1 h-2.5 bg-slate-300 rounded-xs"></span>
-              <span className="inline-block w-1 h-3 bg-slate-300 rounded-xs"></span>
-              <span className="inline-block w-1 h-3.5 bg-slate-300 rounded-xs"></span>
-              <span className="ml-0.5">4G</span>
-            </span>
-            <div className="flex items-center gap-1">
-              <div className="w-5 h-2.5 border border-slate-300 rounded-xs p-[1px] flex items-center">
-                <div className="w-[87%] h-full bg-slate-200 rounded-xs"></div>
-              </div>
-              <span className="text-[10px]">87%</span>
-            </div>
-          </div>
-        </div>
+    <div className="flex justify-center bg-[#070e1e] min-h-[100dvh] text-white font-sans antialiased">
+      <main className="w-full max-w-4xl px-4 sm:px-8 py-4 sm:py-6 flex flex-col min-h-[100dvh] relative shadow-2xl pb-24">
 
         {/* ── HEADER: LOGO BUSACESSÍVEL + ENGRENAGEM DE CONFIGURAÇÃO ── */}
         <header className="px-5 py-3 flex items-center justify-between">
@@ -470,27 +443,24 @@ export default function MotoristaDashboard({
                 </div>
               </button>
 
-              {/* Botão 2: Avisos por Áudio */}
-              <button
-                onClick={handleToggleAudio}
-                className="bg-[#0e172e] border border-blue-900/30 hover:border-blue-600/50 rounded-2xl p-3.5 flex flex-col items-center text-center justify-between active:scale-95 transition-all shadow-md group relative min-h-[110px]"
-                aria-label={audioAtivo ? "Desativar avisos por áudio" : "Ativar avisos por áudio"}
+              {/* Botão 2: Alertas Visuais */}
+              <div
+                className="bg-[#0e172e] border border-blue-900/30 rounded-2xl p-3.5 flex flex-col items-center text-center justify-between shadow-md relative min-h-[110px]"
+                aria-label="Alertas visuais e luminosos"
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 transition-colors ${
-                  audioAtivo ? 'bg-blue-950/70 text-[#38bdf8]' : 'bg-red-950/70 text-red-400'
-                }`}>
-                  {audioAtivo ? <Volume2 size={24} strokeWidth={2.2} /> : <VolumeX size={24} strokeWidth={2.2} />}
+                <div className="w-10 h-10 rounded-xl bg-blue-950/70 text-[#38bdf8] flex items-center justify-center mb-1.5">
+                  <ShieldCheck size={24} strokeWidth={2.2} />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-white block">Avisos por Áudio</span>
+                  <span className="text-xs font-bold text-white block">Alertas Visuais</span>
                   <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                    {audioAtivo ? 'Ative ou desative os avisos' : 'Voz desativada (toque)'}
+                    100% Silencioso e Luminoso
                   </span>
                 </div>
-                <div className="w-full flex justify-end mt-1 text-slate-500 group-hover:text-slate-300">
-                  <ChevronRight size={14} />
+                <div className="w-full flex justify-end mt-1 text-slate-500">
+                  <span className="text-[10px] font-bold text-emerald-400">Ativo</span>
                 </div>
-              </button>
+              </div>
 
               {/* Botão 3: Histórico */}
               <button
@@ -631,9 +601,9 @@ export default function MotoristaDashboard({
           </div>
         )}
 
-        {/* ── BOTTOM NAVIGATION BAR (IDÊNTICA À FOTO) ── */}
+        {/* ── BOTTOM NAVIGATION BAR ── */}
         <nav 
-          className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#070e1e] border-t border-slate-800/80 px-4 py-2 flex items-center justify-around z-40 backdrop-blur-md"
+          className="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto bg-[#070e1e]/95 border-t border-slate-800/80 px-6 py-2.5 flex items-center justify-around z-40 backdrop-blur-md"
           role="navigation"
           aria-label="Navegação inferior do motorista"
         >
