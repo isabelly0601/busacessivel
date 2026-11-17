@@ -14,7 +14,7 @@ import { validationRoutes } from './features/validation/validation.feature';
 import { smsRoutes } from './features/sms/sms.feature';
 import { appDistributionRoutes } from './features/app-distribution/app-distribution.feature';
 
-const fastify = Fastify({ logger: true });
+export const fastify = Fastify({ logger: true });
 
 // Registrar Plugins
 fastify.register(cors, { origin: '*' });
