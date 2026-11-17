@@ -1,144 +1,135 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import MotoristaDashboard, { AlertaSolicitacao } from './components/MotoristaDashboard';
+import RouteSetup from './components/RouteSetup';
+import MotoristaDashboard from './components/MotoristaDashboard';
 
 const API_BASE = '/api';
 
-export default function MotoristaPage() {
-  const [lineCode, setLineCode] = useState('8106');
-  const [vehicleNumber, setVehicleNumber] = useState('32018');
-  const [isDriving, setIsDriving] = useState(true);
-  const [alerts, setAlerts] = useState<AlertaSolicitacao[]>([]);
+export default function Motorista() {
+  const [lineCode, setLineCode] = useState('');
+  const [isDriving, setIsDriving] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [gpsReady, setGpsReady] = useState(false);
-  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [driverLocation, setDriverLocation] = useState<{lat: number, lng: number} | null>(null);
   const [newAlertFlash, setNewAlertFlash] = useState(false);
 
   const lastAlertsCount = useRef(0);
 
-  // ── Persistência de Sessão Local ──
+  // ── Session Persistence ──
   useEffect(() => {
     const savedLine = localStorage.getItem('driver_line');
-    const savedVehicle = localStorage.getItem('driver_vehicle');
-    const savedIsDriving = localStorage.getItem('driver_is_driving');
-    
-    if (savedLine) setLineCode(savedLine);
-    if (savedVehicle) setVehicleNumber(savedVehicle);
-    if (savedIsDriving !== null) {
-      setIsDriving(savedIsDriving === 'true');
+    const savedIsDriving = localStorage.getItem('driver_is_driving') === 'true';
+    if (savedLine && savedIsDriving) {
+      setLineCode(savedLine);
+      setIsDriving(true);
     }
   }, []);
 
-  // ── Monitoramento e Simulação de GPS ──
+  // ── GPS ──
   useEffect(() => {
-    // Coordenadas centrais de BH (Av. Afonso Pena / Av. Amazonas)
+    if (!isDriving) return;
+    // Simulação de GPS caso o browser bloqueie
     setGpsReady(true);
-    setDriverLocation({ lat: -19.9167, lng: -43.9345 });
+    setDriverLocation({ lat: -19.9167, lng: -43.9345 }); // BH centro
 
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      const id = navigator.geolocation.watchPosition(
-        (pos) => {
-          setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setGpsReady(true);
-        },
-        () => {
-          // GPS simulado caso permissão bloqueada
-          setGpsReady(true);
-        },
-        { enableHighAccuracy: true, maximumAge: 5000 }
-      );
-      return () => navigator.geolocation.clearWatch(id);
-    }
-  }, []);
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsReady(true);
+      },
+      () => {
+        // GPS bloqueado, mantém simulado
+        setGpsReady(true);
+      },
+      { enableHighAccuracy: true }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [isDriving]);
 
-  // ── Polling de Alertas de Telemetria (a cada 3s) ──
+  // ── Alerts Polling (a cada 3s para resposta mais rápida) ──
   useEffect(() => {
     if (!isDriving || !lineCode) return;
 
     const fetchAlerts = async () => {
       try {
-        const lat = driverLocation?.lat ?? -19.9167;
-        const lng = driverLocation?.lng ?? -43.9345;
         const res = await fetch(
-          `${API_BASE}/telemetry/alertas?linha=${encodeURIComponent(lineCode)}&lat=${lat}&lng=${lng}`
+          `${API_BASE}/telemetry/alertas?linha=${encodeURIComponent(lineCode)}&lat=${driverLocation?.lat ?? 0}&lng=${driverLocation?.lng ?? 0}`
         );
-
         if (res.ok) {
           const { solicitacoes } = await res.json();
-          const lista: AlertaSolicitacao[] = solicitacoes || [];
+          const lista = solicitacoes || [];
           setAlerts(lista);
 
           // Novo alerta detectado!
           if (lista.length > lastAlertsCount.current) {
+            // Flash visual
             setNewAlertFlash(true);
             setTimeout(() => setNewAlertFlash(false), 2000);
 
-            if ('vibrate' in navigator) {
-              navigator.vibrate([400, 200, 400, 200, 400]);
+            // Vibração no celular
+            if ('vibrate' in navigator) navigator.vibrate([400, 200, 400, 200, 400]);
+
+            // Voz
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+              const msg = new SpeechSynthesisUtterance(
+                `Atenção! Novo passageiro acessível aguardando no próximo ponto da linha ${lineCode}.`
+              );
+              msg.lang = 'pt-BR';
+              msg.rate = 0.95;
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(msg);
             }
-            // Assistência de voz desativada para o motorista conforme solicitação (100% visual/tátil)
           }
           lastAlertsCount.current = lista.length;
         }
       } catch (err) {
-        // Silencioso em fallback
+        console.error('Erro ao buscar alertas:', err);
       }
     };
 
-    fetchAlerts();
-    const iv = setInterval(fetchAlerts, 3000);
+    fetchAlerts(); // imediato
+    const iv = setInterval(fetchAlerts, 3000); // polling a cada 3s
     return () => clearInterval(iv);
   }, [isDriving, lineCode, driverLocation]);
 
-  // ── Notificar Chegada ao Passageiro ──
   const handleNotifyArrival = async (solicitacaoId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/telemetry/notificar/${solicitacaoId}`, {
-        method: 'PATCH'
-      });
-      if (res.ok) {
-        setAlerts((prev) => prev.filter((a) => a.id !== solicitacaoId));
-        lastAlertsCount.current = Math.max(0, lastAlertsCount.current - 1);
-      }
-    } catch (err) {
-      console.error('Erro ao notificar no backend:', err);
+    const res = await fetch(`${API_BASE}/telemetry/notificar/${solicitacaoId}`, {
+      method: 'PATCH'
+    });
+    if (res.ok) {
+      setAlerts((prev: any[]) => prev.filter((a: any) => a.id !== solicitacaoId));
+      lastAlertsCount.current = Math.max(0, lastAlertsCount.current - 1);
     }
   };
 
-  const handleStartTrip = () => {
-    setIsDriving(true);
-    localStorage.setItem('driver_is_driving', 'true');
-    localStorage.setItem('driver_line', lineCode);
+  const handleStartRoute = () => {
+    if (lineCode.trim()) {
+      setIsDriving(true);
+      localStorage.setItem('driver_line', lineCode);
+      localStorage.setItem('driver_is_driving', 'true');
+    }
   };
 
-  const handleEndTrip = () => {
+  const handleLogout = () => {
     setIsDriving(false);
-    localStorage.setItem('driver_is_driving', 'false');
+    setAlerts([]);
+    lastAlertsCount.current = 0;
+    localStorage.removeItem('driver_is_driving');
   };
 
-  const handleSetLineCode = (code: string) => {
-    setLineCode(code);
-    localStorage.setItem('driver_line', code);
-  };
-
-  const handleSetVehicleNumber = (num: string) => {
-    setVehicleNumber(num);
-    localStorage.setItem('driver_vehicle', num);
-  };
+  if (!isDriving) {
+    return <RouteSetup lineCode={lineCode} setLineCode={setLineCode} onStart={handleStartRoute} />;
+  }
 
   return (
     <MotoristaDashboard
       lineCode={lineCode}
-      setLineCode={handleSetLineCode}
-      vehicleNumber={vehicleNumber}
-      setVehicleNumber={handleSetVehicleNumber}
       gpsReady={gpsReady}
       alerts={alerts}
       driverLocation={driverLocation}
       newAlertFlash={newAlertFlash}
-      isDriving={isDriving}
-      onStartTrip={handleStartTrip}
-      onEndTrip={handleEndTrip}
+      onLogout={handleLogout}
       onNotify={handleNotifyArrival}
     />
   );

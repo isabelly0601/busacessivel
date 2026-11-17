@@ -10,7 +10,6 @@ interface MapProps {
   targetLocation: { lat: number; lng: number } | null;
   onArrived?: () => void;
   falar: (texto: string) => void;
-  falarOrientacoes?: boolean;
 }
 
 function calcBearing(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
@@ -23,13 +22,13 @@ function calcBearing(from: { lat: number; lng: number }, to: { lat: number; lng:
 }
 
 function bearingToText(bearing: number): string {
-  if (bearing < 35 || bearing >= 325) return 'Continue em frente';
-  if (bearing >= 35 && bearing < 150) return 'Vire à direita';
-  if (bearing >= 150 && bearing < 210) return 'Dê meia-volta';
+  if (bearing < 45 || bearing >= 315) return 'Continue para o norte';
+  if (bearing >= 45 && bearing < 135) return 'Vire à direita';
+  if (bearing >= 135 && bearing < 225) return 'Continue para trás';
   return 'Vire à esquerda';
 }
 
-export default function AccessibilityMap({ userLocation, targetLocation, onArrived, falar, falarOrientacoes = false }: MapProps) {
+export default function AccessibilityMap({ userLocation, targetLocation, onArrived, falar }: MapProps) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<any>(null);
@@ -89,33 +88,21 @@ export default function AccessibilityMap({ userLocation, targetLocation, onArriv
       const last = lastDistRef.current;
       const shouldSpeak = last === null ||
         (last > 50 && dist <= 50) || (last > 20 && dist <= 20) ||
-        (last > 10 && dist <= 10) || (last > 5 && dist <= 5) || Math.abs(last - dist) >= 20;
+        (last > 5 && dist <= 5) || Math.abs(last - dist) >= 25;
 
-      // SÓ FALA SE falarOrientacoes ESTIVER HABILITADO (na tela de navegação)
-      if (falarOrientacoes && shouldSpeak) {
+      if (shouldSpeak) {
         if (dist <= 5) {
-          falar('Você chegou ao ponto de ônibus! Aguarde o seu embarque.');
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate([600, 200, 600]);
-          }
+          falar('Você chegou ao ponto de ônibus!');
           if (onArrived) onArrived();
-        } else if (dist <= 15) {
-          falar(`Você está chegando ao ponto! Apenas ${dist} metros. ${dir}.`);
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
-          }
-        } else if (dist <= 40) {
-          falar(`Aproximando-se do ponto. ${dist} metros. ${dir}.`);
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate([150]);
-          }
+        } else if (dist <= 20) {
+          falar(`Quase lá! ${dist} metros. ${dir}.`);
         } else {
-          falar(`${dir}. Siga por ${dist} metros.`);
+          falar(`${dir}. ${dist} metros até o ponto.`);
         }
         lastDistRef.current = dist;
       }
     }
-  }, [userLocation, targetLocation, falar, falarOrientacoes, onArrived]);
+  }, [userLocation, targetLocation, falar, onArrived]);
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border-8 border-[#FFCC00] shadow-[0_0_30px_rgba(255,204,0,0.3)]" style={{ height: '45vh' }}>
