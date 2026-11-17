@@ -11,11 +11,12 @@ export default function Motorista() {
   const [isDriving, setIsDriving] = useState(false);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [gpsReady, setGpsReady] = useState(false);
-  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [driverLocation, setDriverLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [newAlertFlash, setNewAlertFlash] = useState(false);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const lastAlertsCount = useRef(0);
 
+  // ── Session Persistence ──
   useEffect(() => {
     const savedLine = localStorage.getItem('driver_line');
     const savedIsDriving = localStorage.getItem('driver_is_driving') === 'true';
@@ -25,32 +26,12 @@ export default function Motorista() {
     }
   }, []);
 
-  const initAudio = useCallback(() => {
-    if (!audioCtxRef.current && typeof window !== 'undefined') {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtxRef.current = new AudioContextClass();
-      }
-    }
-  }, []);
-
-  const playBeep = useCallback(() => {
-    if (!audioCtxRef.current) return;
-    const osc = audioCtxRef.current.createOscillator();
-    const gain = audioCtxRef.current.createGain();
-    osc.type = 'square';
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + 0.5);
-    osc.connect(gain).connect(audioCtxRef.current.destination);
-    osc.start();
-    osc.stop(audioCtxRef.current.currentTime + 0.5);
-  }, []);
-
+  // ── GPS ──
   useEffect(() => {
     if (!isDriving) return;
+    // Simulação de GPS caso o browser bloqueie
     setGpsReady(true);
-    setDriverLocation({ lat: -19.9167, lng: -43.9345 });
+    setDriverLocation({ lat: -19.9167, lng: -43.9345 }); // BH centro
 
     const id = navigator.geolocation.watchPosition(
       (pos) => {
@@ -58,6 +39,7 @@ export default function Motorista() {
         setGpsReady(true);
       },
       () => {
+        // GPS bloqueado, mantém simulado
         setGpsReady(true);
       },
       { enableHighAccuracy: true }
@@ -65,20 +47,39 @@ export default function Motorista() {
     return () => navigator.geolocation.clearWatch(id);
   }, [isDriving]);
 
+  // ── Alerts Polling (a cada 3s para resposta mais rápida) ──
   useEffect(() => {
     if (!isDriving || !lineCode) return;
 
     const fetchAlerts = async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/telemetry/alertas?linha=${encodeURIComponent(lineCode)}&lat=${driverLocation?.lat ?? -19.9167}&lng=${driverLocation?.lng ?? -43.9345}`
+          `${API_BASE}/telemetry/alertas?linha=${encodeURIComponent(lineCode)}&lat=${driverLocation?.lat ?? 0}&lng=${driverLocation?.lng ?? 0}`
         );
         if (res.ok) {
           const { solicitacoes } = await res.json();
           const lista = solicitacoes || [];
           setAlerts(lista);
+
+          // Novo alerta detectado!
           if (lista.length > lastAlertsCount.current) {
-            playBeep();
+            // Flash visual
+            setNewAlertFlash(true);
+            setTimeout(() => setNewAlertFlash(false), 2000);
+
+            // Vibração no celular
+            if ('vibrate' in navigator) navigator.vibrate([400, 200, 400, 200, 400]);
+
+            // Voz
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+              const msg = new SpeechSynthesisUtterance(
+                `Atenção! Novo passageiro acessível aguardando no próximo ponto da linha ${lineCode}.`
+              );
+              msg.lang = 'pt-BR';
+              msg.rate = 0.95;
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(msg);
+            }
           }
           lastAlertsCount.current = lista.length;
         }
@@ -87,44 +88,49 @@ export default function Motorista() {
       }
     };
 
-    fetchAlerts();
-    const iv = setInterval(fetchAlerts, 3000);
+    fetchAlerts(); // imediato
+    const iv = setInterval(fetchAlerts, 3000); // polling a cada 3s
     return () => clearInterval(iv);
-  }, [isDriving, driverLocation, lineCode, playBeep]);
+  }, [isDriving, lineCode, driverLocation]);
 
   const handleNotifyArrival = async (solicitacaoId: string) => {
     const res = await fetch(`${API_BASE}/telemetry/notificar/${solicitacaoId}`, {
       method: 'PATCH'
     });
     if (res.ok) {
-      setAlerts((prev) => prev.filter((a) => a.id !== solicitacaoId));
+      setAlerts((prev: any[]) => prev.filter((a: any) => a.id !== solicitacaoId));
+      lastAlertsCount.current = Math.max(0, lastAlertsCount.current - 1);
     }
   };
 
-  return isDriving ? (
+  const handleStartRoute = () => {
+    if (lineCode.trim()) {
+      setIsDriving(true);
+      localStorage.setItem('driver_line', lineCode);
+      localStorage.setItem('driver_is_driving', 'true');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsDriving(false);
+    setAlerts([]);
+    lastAlertsCount.current = 0;
+    localStorage.removeItem('driver_is_driving');
+  };
+
+  if (!isDriving) {
+    return <RouteSetup lineCode={lineCode} setLineCode={setLineCode} onStart={handleStartRoute} />;
+  }
+
+  return (
     <MotoristaDashboard
       lineCode={lineCode}
       gpsReady={gpsReady}
       alerts={alerts}
       driverLocation={driverLocation}
-      onLogout={() => {
-        setIsDriving(false);
-        localStorage.removeItem('driver_is_driving');
-      }}
+      newAlertFlash={newAlertFlash}
+      onLogout={handleLogout}
       onNotify={handleNotifyArrival}
-    />
-  ) : (
-    <RouteSetup
-      lineCode={lineCode}
-      setLineCode={setLineCode}
-      onStart={() => {
-        if (lineCode.trim()) {
-          setIsDriving(true);
-          localStorage.setItem('driver_line', lineCode);
-          localStorage.setItem('driver_is_driving', 'true');
-          initAudio();
-        }
-      }}
     />
   );
 }

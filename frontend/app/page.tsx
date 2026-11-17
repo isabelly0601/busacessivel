@@ -10,13 +10,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     setMounted(true);
-    // Redireciona imediatamente para a tela do passageiro com o mapa e câmera
-    router.push('/passageiro');
-  }, [router]);
-
-  const handleStart = () => {
-    router.push('/passageiro');
-  };
+  }, []);
 
   if (!mounted) return null;
 
@@ -24,7 +18,6 @@ export default function SplashScreen() {
     <main 
       className="min-h-dvh flex flex-col items-center justify-between p-8"
       style={{ backgroundColor: '#FFCC00', color: '#000' }}
-      onClick={handleStart}
     >
       <div className="flex-1 flex flex-col items-center justify-center w-full gap-6">
         
@@ -53,22 +46,25 @@ export default function SplashScreen() {
           </p>
         </div>
 
-        {/* BRAILLE DECORATIVO (Simulação) */}
-        <div className="flex gap-4 mt-12 opacity-40">
-          <div className="grid grid-cols-2 gap-1"><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/></div>
-          <div className="grid grid-cols-2 gap-1"><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/></div>
-          <div className="grid grid-cols-2 gap-1"><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/></div>
-          <div className="grid grid-cols-2 gap-1"><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 bg-black rounded-full"/><div className="w-2 h-2 rounded-full"/><div className="w-2 h-2 rounded-full"/></div>
-        </div>
-
       </div>
 
-      <button 
-        className="bg-black text-white w-full max-w-sm py-5 rounded-full text-2xl font-black flex items-center justify-center gap-4 active:scale-95 transition-all shadow-xl"
-        aria-label="Toque para começar"
-      >
-        <Volume2 size={32} /> Toque para começar
-      </button>
+      <div className="w-full max-w-sm flex flex-col gap-4 my-4">
+        <button 
+          onClick={() => router.push('/motorista')}
+          className="bg-black text-white w-full py-5 rounded-full text-2xl font-black flex items-center justify-center gap-4 active:scale-95 transition-all shadow-xl"
+          aria-label="Entrar como Motorista"
+        >
+          🚘 Sou Motorista
+        </button>
+
+        <button 
+          onClick={() => router.push('/passageiro')}
+          className="bg-white text-black border-4 border-black w-full py-4 rounded-full text-xl font-black flex items-center justify-center gap-4 active:scale-95 transition-all shadow-md"
+          aria-label="Entrar como Passageiro"
+        >
+          🚌 Sou Passageiro
+        </button>
+      </div>
 
     </main>
   );
